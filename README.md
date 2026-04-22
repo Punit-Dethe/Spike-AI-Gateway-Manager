@@ -1,7 +1,7 @@
 <div align="center">
   <img src="nexusai-electron/assets/icon-256.png" alt="Spike Logo" width="120" height="120">
   
-  # Spike AI Gateway
+  # Spike
   
   **Transform browser-based AI into a standard REST API**
   
