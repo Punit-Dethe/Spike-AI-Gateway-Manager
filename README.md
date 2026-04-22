@@ -19,38 +19,72 @@
 
 ## 🌟 Overview
 
-Spike is a comprehensive desktop application that provides a unified gateway to multiple AI services. Perfect for developers, students, and anyone working on AI projects who needs a reliable, local API gateway with built-in testing and monitoring capabilities.
+**Spike turns your browser AI into a real API.**
+
+Use ChatGPT and Google Gemini in your code without paying for API access. Spike runs locally on your computer and provides a standard OpenAI-compatible API that works with any programming language.
+
+**The magic?** Just change the model name to switch providers - Spike handles the routing automatically.
+
+```python
+import requests
+
+# Use ChatGPT - model name starts with "gpt"
+response = requests.post('http://localhost:8000/v1/chat/completions', json={
+    "model": "gpt-4o",
+    "messages": [{"role": "user", "content": "Hello!"}]
+})
+
+# Use Gemini - model name starts with "gemini"  
+response = requests.post('http://localhost:8000/v1/chat/completions', json={
+    "model": "gemini-3-flash",
+    "messages": [{"role": "user", "content": "Hello!"}]
+})
+
+# Same endpoint, different models = different providers!
+print(response.json()['choices'][0]['message']['content'])
+```
+
+### Perfect For:
+
+- 🎓 **Students**: Build AI projects without API costs
+- 💻 **Developers**: Prototype with multiple AI models
+- 🔬 **Researchers**: Test and compare different models
+- 🚀 **Startups**: MVP development without API bills
+- 🎨 **Hobbyists**: Experiment with AI freely
 
 ### Why Spike?
 
-- **🎯 Unified API**: Single endpoint for multiple AI providers (Gemini, ChatGPT)
-- **💬 Built-in Chat**: Test your AI integrations directly in the app
-- **📊 Real-time Monitoring**: Live service status and comprehensive logging
-- **🔒 Privacy-First**: Everything runs locally on your machine
-- **🎨 Beautiful UI**: Clean, modern interface with a premium aesthetic
-- **🚀 Easy Setup**: One-click installation and service management
+| Feature | Spike | Traditional APIs |
+|---------|-------|------------------|
+| **Cost** | Free (use your browser sessions) | $$ Pay per token |
+| **Setup** | 5 minutes | API keys, billing setup |
+| **Privacy** | 100% local | Data sent to API servers |
+| **Models** | ChatGPT + Gemini | Single provider |
+| **Testing** | Built-in chat interface | External tools needed |
 
 ---
 
 ## ✨ Features
 
-### Core Functionality
-- **Unified Proxy Server**: Route requests to different AI backends through a single endpoint
-- **Service Management**: Start, stop, and monitor AI services with one click
-- **Token Management**: Easy configuration for Gemini and ChatGPT authentication
-- **In-App Chat Interface**: Test your AI integrations without leaving the app
+### 🚀 API Gateway
+- **OpenAI-Compatible API**: Works with existing OpenAI libraries and tools
+- **Multiple AI Providers**: ChatGPT (GPT-4o, GPT-4, GPT-3.5) and Gemini (3.1 Pro, 3 Flash, 2.0 Flash)
+- **No API Keys Needed**: Use your browser session tokens
+- **Local & Private**: All processing happens on your machine
+- **Unified Endpoint**: Single API for all providers
 
-### Developer Tools
-- **Comprehensive Logging**: Full application logs with export and copy functionality
-- **Service Status Dashboard**: Real-time monitoring of all services
-- **API Endpoint Display**: Quick access to your local API endpoints
-- **Error Tracking**: Detailed error logs for troubleshooting
+### 💻 Developer Tools
+- **Built-in Chat Interface**: Test your prompts before coding
+- **Real-time Logs**: Debug API calls and responses
+- **Service Dashboard**: Monitor all services at a glance
+- **Token Management**: Easy configuration for all providers
+- **Export Logs**: Share logs for troubleshooting
 
-### User Experience
-- **System Tray Integration**: Runs in the background, always accessible
-- **macOS-Style Controls**: Premium window controls with smooth animations
-- **Responsive Design**: Clean, modern UI that adapts to your workflow
-- **Quick Start Guide**: Built-in tutorials to get you up and running
+### 🎨 User Experience
+- **One-Click Setup**: Install and start in minutes
+- **System Tray**: Runs in background, always available
+- **Beautiful UI**: Clean, modern interface
+- **Cross-Model Testing**: Compare responses from different models
 
 ---
 
