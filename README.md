@@ -1,6 +1,19 @@
-# Spike
+<div align="center">
+  <img src="nexusai-electron/assets/icon-256.png" alt="Spike Logo" width="120" height="120">
+  
+  # Spike
+  
+  **Transform browser-based AI into a standard REST API**
+  
+  <p>
+    <a href="#quick-start">Quick Start</a> •
+    <a href="#api-reference">API Reference</a> •
+    <a href="API_DOCUMENTATION.md">Documentation</a> •
+    <a href="#contributing">Contributing</a>
+  </p>
+</div>
 
-**Transform browser-based AI into a standard REST API**
+---
 
 Spike converts ChatGPT and Google Gemini into OpenAI-compatible APIs that run locally on your machine. No API keys, no usage fees—just your browser session tokens.
 
