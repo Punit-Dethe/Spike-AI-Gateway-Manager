@@ -1,7 +1,8 @@
 <div align="center">
   <img src="nexusai-electron/assets/icon-256.png" alt="Spike Logo" width="120" height="120">
   
-  # Spike - Always There
+  # Spike
+  Always There
   
   **Transform browser-based AI into a standard REST API**
   
