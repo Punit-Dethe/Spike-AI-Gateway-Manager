@@ -2,6 +2,7 @@ import { Home, FileText, Activity, MessageSquare, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import hedgehogIcon from '../assets/hedgehog.png';
+import hedgehogVideo from '../assets/icons8-hedgehog-ezgif_com-gif-to.webm?url';
 
 type Tab = 'chat' | 'dashboard' | 'services' | 'logs';
 
@@ -71,7 +72,7 @@ const AnimatedLogo = () => {
         preload="auto"
         onError={() => setUseVideo(false)}
       >
-        <source src="/src/assets/icons8-hedgehog-ezgif_com-gif-to.webm" type="video/webm" />
+        <source src={hedgehogVideo} type="video/webm" />
       </video>
     );
   }
