@@ -1,362 +1,343 @@
-# Spike - AI Gateway Manager
+# Spike
 
-<div align="center">
+**Transform browser-based AI into a standard REST API**
 
-![Spike Logo](nexusai-electron/assets/icon-256.png)
-
-**A beautiful, local AI gateway that bridges multiple AI providers with a unified API**
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/platform-Windows-blue.svg)](https://www.microsoft.com/windows)
-[![Electron](https://img.shields.io/badge/Electron-28.0.0-47848F.svg)](https://www.electronjs.org/)
-[![Python](https://img.shields.io/badge/Python-3.8+-3776AB.svg)](https://www.python.org/)
-
-[Features](#features) • [Installation](#installation) • [Quick Start](#quick-start) • [Documentation](#documentation) • [Contributing](#contributing)
-
-</div>
-
----
-
-## 🌟 Overview
-
-**Spike turns your browser AI into a real API.**
-
-Use ChatGPT and Google Gemini in your code without paying for API access. Spike runs locally on your computer and provides a standard OpenAI-compatible API that works with any programming language.
-
-**The magic?** Just change the model name to switch providers - Spike handles the routing automatically.
+Spike converts ChatGPT and Google Gemini into OpenAI-compatible APIs that run locally on your machine. No API keys, no usage fees—just your browser session tokens.
 
 ```python
 import requests
 
-# Use ChatGPT - model name starts with "gpt"
 response = requests.post('http://localhost:8000/v1/chat/completions', json={
     "model": "gpt-4o",
-    "messages": [{"role": "user", "content": "Hello!"}]
+    "messages": [{"role": "user", "content": "Explain quantum computing"}]
 })
 
-# Use Gemini - model name starts with "gemini"  
-response = requests.post('http://localhost:8000/v1/chat/completions', json={
-    "model": "gemini-3-flash",
-    "messages": [{"role": "user", "content": "Hello!"}]
-})
-
-# Same endpoint, different models = different providers!
 print(response.json()['choices'][0]['message']['content'])
 ```
 
-### Perfect For:
+---
 
-- 🎓 **Students**: Build AI projects without API costs
-- 💻 **Developers**: Prototype with multiple AI models
-- 🔬 **Researchers**: Test and compare different models
-- 🚀 **Startups**: MVP development without API bills
-- 🎨 **Hobbyists**: Experiment with AI freely
+## Why Spike
 
-### Why Spike?
+**Free AI Access**  
+Use ChatGPT and Gemini without API costs. Perfect for students, researchers, and developers building prototypes.
 
-| Feature | Spike | Traditional APIs |
-|---------|-------|------------------|
-| **Cost** | Free (use your browser sessions) | $$ Pay per token |
-| **Setup** | 5 minutes | API keys, billing setup |
-| **Privacy** | 100% local | Data sent to API servers |
-| **Models** | ChatGPT + Gemini | Single provider |
-| **Testing** | Built-in chat interface | External tools needed |
+**Standard API Format**  
+OpenAI-compatible endpoints work with existing tools and libraries. Drop-in replacement for OpenAI's API.
+
+**Automatic Provider Routing**  
+Switch between ChatGPT and Gemini by changing the model name. No configuration needed.
+
+**Local and Private**  
+Everything runs on your machine. Your data never leaves your computer.
+
+**Built-in Testing**  
+Test prompts in the integrated chat interface before writing code.
 
 ---
 
-## ✨ Features
+## Quick Start
 
-### 🚀 API Gateway
-- **OpenAI-Compatible API**: Works with existing OpenAI libraries and tools
-- **Multiple AI Providers**: ChatGPT (GPT-4o, GPT-4, GPT-3.5) and Gemini (3.1 Pro, 3 Flash, 2.0 Flash)
-- **No API Keys Needed**: Use your browser session tokens
-- **Local & Private**: All processing happens on your machine
-- **Unified Endpoint**: Single API for all providers
+### Installation
 
-### 💻 Developer Tools
-- **Built-in Chat Interface**: Test your prompts before coding
-- **Real-time Logs**: Debug API calls and responses
-- **Service Dashboard**: Monitor all services at a glance
-- **Token Management**: Easy configuration for all providers
-- **Export Logs**: Share logs for troubleshooting
+1. Download the latest release from [Releases](../../releases)
+2. Run `Spike-Setup-1.0.0.exe`
+3. Launch Spike from the Start Menu
 
-### 🎨 User Experience
-- **One-Click Setup**: Install and start in minutes
-- **System Tray**: Runs in background, always available
-- **Beautiful UI**: Clean, modern interface
-- **Cross-Model Testing**: Compare responses from different models
+### Configuration
 
----
+**For ChatGPT:**
+1. Visit `https://chatgpt.com/api/auth/session` in your browser
+2. Copy the `accessToken` value
+3. In Spike: Services → Chat2API → Configure Token → Paste token
 
-## 📦 Installation
+**For Gemini:**
+1. Open Developer Tools (F12) on `https://gemini.google.com`
+2. Go to Application → Cookies → `gemini.google.com`
+3. Copy `__Secure-1PSID` and `__Secure-1PSIDTS` values
+4. In Spike: Services → Gemini Bridge → Configure Tokens → Paste both
 
-### Prerequisites
-- **Windows 10/11** (64-bit)
-- **Python 3.8+** (automatically managed by the installer)
-- **Node.js 16+** (for development only)
+### Start Services
 
-### Download & Install
+1. Open Spike Dashboard
+2. Click "Start Services"
+3. Wait for green status indicators
 
-1. **Download the latest release**
-   - Go to [Releases](../../releases)
-   - Download `Spike-Setup-1.0.0.exe`
+### Make API Calls
 
-2. **Run the installer**
-   - Double-click the downloaded file
-   - Follow the installation wizard
-   - Choose your installation directory
-
-3. **Launch Spike**
-   - Find Spike in your Start Menu
-   - Or use the desktop shortcut
-
-That's it! Spike will handle all dependencies automatically.
-
----
-
-## 🚀 Quick Start
-
-### 1. Configure Your AI Services
-
-#### For Google Gemini:
-1. Click on **Services** in the sidebar
-2. Expand the **Gemini Bridge** section
-3. Click **Configure Tokens**
-4. Enter your PSID and PSIDTS tokens
-5. Click **Save Tokens**
-
-#### For ChatGPT:
-1. Click on **Services** in the sidebar
-2. Expand the **Chat2API** section
-3. Click **Configure Token**
-4. Follow the two-step process to add your ChatGPT token
-5. Restart the service
-
-### 2. Start Services
-
-1. Go to the **Dashboard**
-2. Choose your preferred AI provider (Gemini or ChatGPT)
-3. Click **Start Services**
-4. Wait for services to initialize (status indicators will turn green)
-
-### 3. Test Your Setup
-
-**Option A: Use the Built-in Chat**
-1. Click on **Chat** in the sidebar
-2. Select your AI provider
-3. Start chatting!
-
-**Option B: Use the API**
 ```bash
-# Your unified API endpoint
-http://localhost:8000
-
-# Example request
 curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gemini-3-flash",
-    "messages": [{"role": "user", "content": "Hello!"}]
+    "model": "gpt-4o",
+    "messages": [{"role": "user", "content": "Hello"}]
   }'
 ```
 
 ---
 
-## 📚 Documentation
+## API Reference
 
-### Service Architecture
+### Endpoint
 
-Spike consists of three main services:
+```
+POST http://localhost:8000/v1/chat/completions
+```
 
-1. **Unified Proxy** (Port 8000)
-   - Routes requests to appropriate AI backends
-   - Provides a consistent API interface
-   - Handles authentication and error management
+### Request
 
-2. **Gemini Bridge** (Port 6969)
-   - Connects to Google Gemini API
-   - Uses browser session authentication
-   - Supports Gemini 2.0 Flash and Pro models
+```json
+{
+  "model": "gpt-4o",
+  "messages": [
+    {"role": "user", "content": "Your message"}
+  ],
+  "temperature": 0.7,
+  "max_tokens": 2000,
+  "stream": false
+}
+```
 
-3. **Chat2API** (Port 5005)
-   - Bridges ChatGPT web interface to API
-   - Token-based authentication
-   - Supports GPT-4 and GPT-3.5 models
+### Response
 
-### Configuration Files
+```json
+{
+  "id": "chatcmpl-123",
+  "object": "chat.completion",
+  "model": "gpt-4o",
+  "choices": [{
+    "message": {
+      "role": "assistant",
+      "content": "Response text"
+    },
+    "finish_reason": "stop"
+  }]
+}
+```
 
-- **Gemini Tokens**: Stored in `python/services/gemini/gemini_server.py`
-- **ChatGPT Tokens**: Stored in `python/services/chat2api/data/token.txt`
-- **Application Logs**: `%APPDATA%/spike/logs/spike.log`
+### Available Models
 
-### API Endpoints
+**ChatGPT Models**
+- `gpt-4o` - Latest, most capable
+- `gpt-4o-mini` - Fast and efficient
+- `gpt-4-turbo` - High performance
+- `gpt-4` - Complex reasoning
+- `gpt-3.5-turbo` - General use
+- `o1`, `o1-mini`, `o1-pro` - Advanced reasoning
+- `o3-mini`, `o3-mini-high` - Latest models
 
-Once services are running:
+**Gemini Models**
+- `gemini-3-flash` - Fastest
+- `gemini-2.0-flash` - Balanced
+- `gemini-3.1-flash` - Enhanced
+- `gemini-3.1-pro` - Most capable
 
-- **Unified Proxy**: `http://localhost:8000`
-- **Gemini Direct**: `http://localhost:6969`
-- **Chat2API Direct**: `http://localhost:5005`
-- **Token Management**: `http://localhost:5005/tokens`
+### Provider Routing
+
+Spike automatically routes requests based on model name:
+- Models starting with `gpt-`, `o1`, or `o3` route to ChatGPT
+- Models starting with `gemini` route to Gemini
+
+No provider parameter needed—just change the model name.
 
 ---
 
-## 🛠️ Development
+## Integration Examples
 
-### Building from Source
+### Python
+
+```python
+import requests
+
+def chat(message, model="gpt-4o"):
+    response = requests.post(
+        'http://localhost:8000/v1/chat/completions',
+        json={
+            "model": model,
+            "messages": [{"role": "user", "content": message}]
+        }
+    )
+    return response.json()['choices'][0]['message']['content']
+
+# Use ChatGPT
+answer = chat("What is Python?", model="gpt-4o")
+
+# Use Gemini
+answer = chat("What is Python?", model="gemini-3-flash")
+```
+
+### JavaScript
+
+```javascript
+async function chat(message, model = 'gpt-4o') {
+  const response = await fetch('http://localhost:8000/v1/chat/completions', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      model: model,
+      messages: [{role: 'user', content: message}]
+    })
+  });
+  
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+// Use ChatGPT
+const answer = await chat('What is JavaScript?', 'gpt-4o');
+
+// Use Gemini
+const answer = await chat('What is JavaScript?', 'gemini-3-flash');
+```
+
+### OpenAI Python Library
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:8000/v1",
+    api_key="not-needed"
+)
+
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello"}]
+)
+
+print(response.choices[0].message.content)
+```
+
+---
+
+## Use Cases
+
+**Student Projects**  
+Build AI-powered applications without API costs. Perfect for coursework and learning.
+
+**Rapid Prototyping**  
+Test ideas with multiple AI models before committing to paid APIs.
+
+**Research and Comparison**  
+Compare responses from different models and providers side-by-side.
+
+**Personal Applications**  
+Create chatbots, content generators, and coding assistants for personal use.
+
+**Development and Testing**  
+Test AI integrations locally before deploying to production.
+
+---
+
+## Architecture
+
+Spike consists of three services:
+
+**Unified Proxy (Port 8000)**  
+Routes requests to appropriate backends based on model name. Provides OpenAI-compatible API.
+
+**Gemini Bridge (Port 6969)**  
+Connects to Google Gemini using browser session authentication. Handles Gemini-specific API format.
+
+**Chat2API (Port 5005)**  
+Bridges ChatGPT web interface to API format. Manages token-based authentication.
+
+All services run locally. No external dependencies beyond the AI providers themselves.
+
+---
+
+## Documentation
+
+- [API Documentation](API_DOCUMENTATION.md) - Complete API reference with examples
+- [User Guide](nexusai-electron/USER_GUIDE.md) - Detailed usage instructions
+- [Quick Reference](QUICK_REFERENCE.md) - Common tasks and troubleshooting
+- [Contributing](CONTRIBUTING.md) - How to contribute to Spike
+
+---
+
+## Development
+
+### Prerequisites
+
+- Windows 10/11 (64-bit)
+- Node.js 16+
+- Python 3.8+
+
+### Build from Source
 
 ```bash
-# Clone the repository
 git clone https://github.com/yourusername/spike.git
 cd spike/nexusai-electron
 
-# Install dependencies
 npm install
-
-# Install Python dependencies
 pip install -r requirements.txt
 
-# Run in development mode
-npm run dev
-
-# Build for production
-npm run build
+npm run dev        # Development mode
+npm run build      # Production build
 ```
 
 ### Project Structure
 
 ```
 spike/
-├── nexusai-electron/          # Main Electron application
-│   ├── electron/              # Electron main process
-│   ├── src/                   # React frontend
-│   │   ├── components/        # UI components
-│   │   └── styles/            # CSS styles
-│   ├── python/                # Python services
-│   │   ├── nexusai/           # Core application logic
-│   │   └── services/          # AI service bridges
-│   └── assets/                # Icons and images
-├── docs/                      # Documentation
-└── README.md                  # This file
+├── nexusai-electron/
+│   ├── electron/          # Main process
+│   ├── src/               # React frontend
+│   ├── python/            # Backend services
+│   │   ├── nexusai/       # Core logic
+│   │   └── services/      # AI bridges
+│   └── assets/            # Icons and images
+└── docs/                  # Documentation
 ```
 
-### Tech Stack
+---
 
-- **Frontend**: React, TypeScript, Tailwind CSS, Framer Motion
-- **Desktop**: Electron 28
-- **Backend**: Python 3.11, FastAPI, Uvicorn
-- **AI Services**: Google Gemini API, ChatGPT Web Interface
+## Troubleshooting
+
+**Services won't start**  
+Check that ports 8000, 6969, and 5005 are available. Restart Spike if needed.
+
+**Authentication errors**  
+Update your tokens in the Services tab. Tokens expire and need periodic renewal.
+
+**Slow responses**  
+Check your internet connection. Try a different model or provider.
+
+**Connection refused**  
+Ensure services are running (green status in Dashboard). Start services if stopped.
+
+**View detailed logs**  
+Open the Logs tab in Spike. Use Copy or Export to share logs when reporting issues.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-We welcome contributions! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-### How to Contribute
-
-1. **Fork the repository**
-2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
-3. **Commit your changes** (`git commit -m 'Add amazing feature'`)
-4. **Push to the branch** (`git push origin feature/amazing-feature`)
-5. **Open a Pull Request**
-
-### Development Guidelines
-
-- Follow the existing code style
-- Write clear commit messages
-- Add tests for new features
-- Update documentation as needed
-- Test on Windows before submitting
-
-### Reporting Issues
-
-Found a bug? Have a feature request? Please open an issue with:
-- Clear description of the problem/feature
-- Steps to reproduce (for bugs)
-- Expected vs actual behavior
-- Screenshots if applicable
-- Your environment (Windows version, Python version, etc.)
+**Ways to contribute:**
+- Report bugs and issues
+- Suggest new features
+- Improve documentation
+- Submit pull requests
+- Help others in discussions
 
 ---
 
-## 📋 Use Cases
+## License
 
-### Perfect for:
-
-- **Students**: Build AI-powered projects for coursework
-- **Developers**: Integrate multiple AI providers in your applications
-- **Researchers**: Test and compare different AI models
-- **Hobbyists**: Experiment with AI without complex setup
-- **Teams**: Share a local AI gateway for development
-
-### Example Projects:
-
-- Chatbots and virtual assistants
-- Content generation tools
-- Code completion and analysis
-- Research and data analysis
-- Educational applications
-- Prototyping and testing
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-## 🔒 Privacy & Security
+## Acknowledgments
 
-- **Local First**: All services run on your machine
-- **No Data Collection**: We don't collect or transmit your data
-- **Token Security**: Tokens are stored locally and never shared
-- **Open Source**: Full transparency - review the code yourself
+Built with Electron, React, FastAPI, and Python. Special thanks to the Chat2API project for ChatGPT bridge implementation.
 
 ---
 
-## 📝 License
+## Support
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE.txt) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **Chat2API**: For the ChatGPT bridge implementation
-- **Electron**: For the amazing desktop framework
-- **React & Tailwind**: For the beautiful UI components
-- **FastAPI**: For the robust Python backend
-- **Community**: For feedback and contributions
-
----
-
-## 📞 Support
-
-- **Documentation**: Check the [User Guide](nexusai-electron/USER_GUIDE.md)
-- **Issues**: Open an issue on GitHub
-- **Discussions**: Join our GitHub Discussions
-- **Email**: [Your contact email]
-
----
-
-## 🗺️ Roadmap
-
-### Coming Soon
-- [ ] macOS and Linux support
-- [ ] Additional AI provider integrations
-- [ ] Plugin system for custom providers
-- [ ] Cloud sync for settings
-- [ ] Multi-language support
-- [ ] Dark mode theme
-
-### Future Ideas
-- Mobile companion app
-- Team collaboration features
-- Usage analytics and insights
-- Custom model fine-tuning
-- API rate limiting and quotas
-
----
-
-<div align="center">
-
-**Made with ❤️ for the AI community**
-
-[⭐ Star us on GitHub](../../stargazers) • [🐛 Report Bug](../../issues) • [💡 Request Feature](../../issues)
-
-</div>
+- **Issues**: [GitHub Issues](https://github.com/yourusername/spike/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/spike/discussions)
+- **Documentation**: [API Docs](API_DOCUMENTATION.md) | [User Guide](nexusai-electron/USER_GUIDE.md)
