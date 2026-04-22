@@ -3,8 +3,10 @@ import os
 
 import utils.configs as configs
 from utils.Logger import logger
+from utils.paths import get_data_path, ensure_data_dir
 
-DATA_FOLDER = "data"
+# Ensure data directory exists and get its path
+DATA_FOLDER = ensure_data_dir()
 TOKENS_FILE = os.path.join(DATA_FOLDER, "token.txt")
 REFRESH_MAP_FILE = os.path.join(DATA_FOLDER, "refresh_map.json")
 ERROR_TOKENS_FILE = os.path.join(DATA_FOLDER, "error_token.txt")
@@ -36,8 +38,7 @@ impersonate_list = [
     "edge101",
 ] if not configs.impersonate_list else configs.impersonate_list
 
-if not os.path.exists(DATA_FOLDER):
-    os.makedirs(DATA_FOLDER)
+# Data directory is already created by ensure_data_dir() above
 
 if os.path.exists(REFRESH_MAP_FILE):
     with open(REFRESH_MAP_FILE, "r") as f:

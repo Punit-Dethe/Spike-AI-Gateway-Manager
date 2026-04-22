@@ -6,8 +6,9 @@ from fastapi.responses import Response
 from app import app
 from gateway.reverseProxy import chatgpt_reverse_proxy
 from utils.kv_utils import set_value_for_key_dict
+from utils.paths import get_template_path
 
-with open("templates/initialize.json", "r") as f:
+with open(get_template_path("initialize.json"), "r") as f:
     initialize_json = json.load(f)
 
 

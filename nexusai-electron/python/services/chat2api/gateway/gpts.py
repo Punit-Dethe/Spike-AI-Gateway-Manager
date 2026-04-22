@@ -7,8 +7,9 @@ from fastapi.responses import Response
 from app import app
 from gateway.chatgpt import chatgpt_html
 from utils.kv_utils import set_value_for_key_list
+from utils.paths import get_template_path
 
-with open("templates/gpts_context.json", "r", encoding="utf-8") as f:
+with open(get_template_path("gpts_context.json"), "r", encoding="utf-8") as f:
     gpts_context = json.load(f)
 
 

@@ -69,7 +69,17 @@ auto_seed = is_true(os.getenv('AUTO_SEED', True))
 force_no_history = is_true(os.getenv('FORCE_NO_HISTORY', False))
 no_sentinel = is_true(os.getenv('NO_SENTINEL', False))
 
-with open('version.txt') as f:
+# Handle PyInstaller bundled resources
+import sys
+if getattr(sys, 'frozen', False):
+    # Running as compiled executable
+    base_path = sys._MEIPASS
+else:
+    # Running as script
+    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+version_file = os.path.join(base_path, 'version.txt')
+with open(version_file) as f:
     version = f.read().strip()
 
 logger.info("-" * 60)

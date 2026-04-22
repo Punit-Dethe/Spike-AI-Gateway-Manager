@@ -57,6 +57,8 @@ Test prompts in the integrated chat interface before writing code.
 2. Run `Spike-Setup-1.0.0.exe`
 3. Launch Spike from the Start Menu
 
+**That's it!** All Python dependencies are bundled. No separate installation required.
+
 ### Configuration
 
 **For ChatGPT:**
@@ -274,7 +276,7 @@ All services run locally. No external dependencies beyond the AI providers thems
 
 - Windows 10/11 (64-bit)
 - Node.js 16+
-- Python 3.8+
+- Python 3.8+ (for building only)
 
 ### Build from Source
 
@@ -282,12 +284,17 @@ All services run locally. No external dependencies beyond the AI providers thems
 git clone https://github.com/yourusername/spike.git
 cd spike/nexusai-electron
 
+# Install dependencies
 npm install
-pip install -r requirements.txt
 
-npm run dev        # Development mode
-npm run build      # Production build
+# Development mode (requires Python installed)
+npm run dev
+
+# Build standalone installer (bundles Python)
+build-standalone.bat
 ```
+
+See [BUILD_INSTRUCTIONS.md](nexusai-electron/BUILD_INSTRUCTIONS.md) for detailed build instructions.
 
 ### Project Structure
 

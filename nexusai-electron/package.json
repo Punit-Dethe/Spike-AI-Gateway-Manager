@@ -8,6 +8,7 @@
     "build:vite": "vite build",
     "build:electron": "electron-builder --config electron-builder.yml",
     "build": "npm run build:vite && npm run build:electron",
+    "build:standalone": "build-standalone.bat",
     "preview": "vite preview"
   },
   "keywords": [

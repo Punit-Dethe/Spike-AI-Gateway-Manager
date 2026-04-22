@@ -17,33 +17,80 @@ if (!fs.existsSync(logsDir)) {
 const logFile = path.join(logsDir, 'spike.log');
 
 // Log function that writes to both console and file
-function log(message) {
-  const timestamp = new Date().toISOString();
-  const logMessage = `[${timestamp}] ${message}\n`;
-  console.log(message);
+function log(message, level = 'INFO', service = 'SYSTEM') {
+  const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const serviceUpper = service.toUpperCase().padEnd(15);
+  const levelUpper = level.toUpperCase().padEnd(8);
+  
+  let logMessage;
+  
+  if (level === 'SEPARATOR') {
+    logMessage = '\n' + '━'.repeat(80) + '\n';
+  } else if (level === 'HEADER') {
+    logMessage = '\n' + '━'.repeat(80) + '\n';
+    logMessage += `[${timestamp}] ${serviceUpper} | ${message}\n`;
+    logMessage += '━'.repeat(80) + '\n';
+  } else {
+    const symbol = level === 'ERROR' ? '✗' : level === 'SUCCESS' ? '✓' : level === 'WARNING' ? '⚠' : '→';
+    logMessage = `[${timestamp}] ${serviceUpper} | ${levelUpper} ${symbol} ${message}\n`;
+  }
+  
+  console.log(logMessage.trim());
   fs.appendFileSync(logFile, logMessage);
 }
 
-log('=== Spike Application Starting ===');
-log(`App path: ${app.getAppPath()}`);
-log(`User data: ${app.getPath('userData')}`);
-log(`Is packaged: ${app.isPackaged}`);
+function logDetail(key, value, indent = 2) {
+  const spaces = ' '.repeat(indent);
+  const logMessage = `${spaces}→ ${key}: ${value}\n`;
+  console.log(logMessage.trim());
+  fs.appendFileSync(logFile, logMessage);
+}
+
+function logSuccess(message, service = 'SYSTEM') {
+  log(message, 'SUCCESS', service);
+}
+
+function logError(message, service = 'SYSTEM', error = null) {
+  log(message, 'ERROR', service);
+  if (error) {
+    logDetail('Error Type', error.name || 'Unknown', 2);
+    logDetail('Error Message', error.message || 'No details', 2);
+    if (error.stack) {
+      const stackLines = error.stack.split('\n').slice(0, 3);
+      fs.appendFileSync(logFile, '\n  Stack Trace:\n');
+      stackLines.forEach(line => {
+        fs.appendFileSync(logFile, `    ${line.trim()}\n`);
+      });
+    }
+  }
+}
+
+function logWarning(message, service = 'SYSTEM') {
+  log(message, 'WARNING', service);
+}
+
+log('Spike Application Starting', 'HEADER', 'SYSTEM');
+logDetail('App Path', app.getAppPath());
+logDetail('User Data', app.getPath('userData'));
+logDetail('Is Packaged', app.isPackaged);
+logDetail('Platform', process.platform);
+logDetail('Node Version', process.version);
 
 // Service management
 const serviceConfig = {
   gemini: {
     name: 'Gemini Bridge',
-    command: 'python',
-    args: ['python/services/gemini/gemini_server.py'],
+    command: app.isPackaged ? 'gemini_server.exe' : 'python',
+    args: app.isPackaged ? [] : ['python/services/gemini/gemini_server.py'],
     port: 6969,
     process: null,
     status: 'stopped'
   },
   chat2api: {
     name: 'Chat2API',
-    command: 'python',
-    args: ['app.py'],
-    cwd: 'python/services/chat2api',
+    command: app.isPackaged ? 'chat2api.exe' : 'python',
+    args: app.isPackaged ? [] : ['app.py'],
+    cwd: app.isPackaged ? null : 'python/services/chat2api',
     port: 5005,
     env: {
       AUTHORIZATION: 'nexusai-default-auth-key',
@@ -55,8 +102,8 @@ const serviceConfig = {
   },
   proxy: {
     name: 'Unified Proxy',
-    command: 'python',
-    args: ['python/nexusai/core/unified_proxy_standalone.py'],
+    command: app.isPackaged ? 'unified_proxy.exe' : 'python',
+    args: app.isPackaged ? [] : ['python/nexusai/core/unified_proxy_standalone.py'],
     port: 8000,
     process: null,
     status: 'stopped'
@@ -113,18 +160,20 @@ function createWindow() {
 
 // Check if services are already running
 async function checkExistingServices() {
+  log('Checking for existing services', 'HEADER', 'SYSTEM');
+  
   for (const serviceName of Object.keys(serviceConfig)) {
     const service = serviceConfig[serviceName];
     const portInUse = await isPortInUse(service.port);
     if (portInUse) {
-      console.log(`Detected ${serviceName} already running on port ${service.port}`);
+      logWarning(`Detected ${service.name} already running on port ${service.port}`, serviceName);
       service.status = 'running';
       // Send status update to renderer
       if (mainWindow && mainWindow.webContents) {
         sendStatusUpdate(serviceName, 'running');
       }
     } else {
-      console.log(`Port ${service.port} (${serviceName}) is free`);
+      log(`Port ${service.port} is available`, 'INFO', serviceName);
       service.status = 'stopped';
       if (mainWindow && mainWindow.webContents) {
         sendStatusUpdate(serviceName, 'stopped');
@@ -139,7 +188,7 @@ function createTray() {
   const fs = require('fs');
   
   if (!fs.existsSync(iconPath)) {
-    console.log('Tray icon not found, skipping tray creation');
+    logWarning('Tray icon not found, skipping tray creation', 'SYSTEM');
     return;
   }
   
@@ -172,8 +221,10 @@ function createTray() {
     tray.on('click', () => {
       mainWindow.show();
     });
+    
+    logSuccess('System tray created successfully', 'SYSTEM');
   } catch (error) {
-    console.log('Failed to create tray icon:', error.message);
+    logError('Failed to create tray icon', 'SYSTEM', error);
   }
 }
 
@@ -204,14 +255,14 @@ function isPortInUse(port) {
 // Kill process on a specific port (Windows)
 function killProcessOnPort(port) {
   return new Promise((resolve) => {
-    console.log(`Attempting to kill process on port ${port}...`);
+    log(`Attempting to kill process on port ${port}`, 'INFO', 'SYSTEM');
     
     // Use PowerShell command for more reliable results
     const psCommand = `Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | Select-Object -Unique`;
     
     exec(`powershell -Command "${psCommand}"`, (error, stdout) => {
       if (error || !stdout.trim()) {
-        console.log(`No process found on port ${port}`);
+        log(`No process found on port ${port}`, 'INFO', 'SYSTEM');
         resolve(false);
         return;
       }
@@ -219,25 +270,26 @@ function killProcessOnPort(port) {
       const pids = stdout.trim().split('\n').map(pid => pid.trim()).filter(pid => pid && pid !== '0');
       
       if (pids.length === 0) {
-        console.log(`No valid PIDs found on port ${port}`);
+        log(`No valid PIDs found on port ${port}`, 'INFO', 'SYSTEM');
         resolve(false);
         return;
       }
       
-      console.log(`Found PIDs on port ${port}:`, pids);
+      log(`Found PIDs on port ${port}: ${pids.join(', ')}`, 'INFO', 'SYSTEM');
       
       // Kill all PIDs found
       let killPromises = pids.map(pid => {
         return new Promise((killResolve) => {
-          console.log(`Executing: taskkill /F /T /PID ${pid}`);
+          log(`Executing: taskkill /F /T /PID ${pid}`, 'INFO', 'SYSTEM');
           exec(`taskkill /F /T /PID ${pid}`, (killError, killStdout, killStderr) => {
             if (!killError) {
-              console.log(`Successfully killed process ${pid} on port ${port}`);
-              console.log(`Output: ${killStdout}`);
+              logSuccess(`Killed process ${pid} on port ${port}`, 'SYSTEM');
               killResolve(true);
             } else {
-              console.error(`Failed to kill process ${pid}: ${killError.message}`);
-              if (killStderr) console.error(`Stderr: ${killStderr}`);
+              logError(`Failed to kill process ${pid}`, 'SYSTEM', killError);
+              if (killStderr) {
+                logDetail('Stderr', killStderr.trim());
+              }
               killResolve(false);
             }
           });
@@ -247,7 +299,7 @@ function killProcessOnPort(port) {
       // Wait for all kill operations to complete
       Promise.all(killPromises).then((results) => {
         const successCount = results.filter(r => r).length;
-        console.log(`Killed ${successCount} of ${pids.length} processes on port ${port}`);
+        log(`Killed ${successCount} of ${pids.length} processes on port ${port}`, 'INFO', 'SYSTEM');
         resolve(successCount > 0);
       });
     });
@@ -263,7 +315,7 @@ async function startService(serviceName) {
   // Check if port is already in use
   const portInUse = await isPortInUse(service.port);
   if (portInUse) {
-    console.log(`Port ${service.port} is already in use. Attempting to kill existing process...`);
+    logWarning(`Port ${service.port} is already in use. Attempting to kill existing process...`, serviceName);
     const killed = await killProcessOnPort(service.port);
     
     if (!killed) {
@@ -293,77 +345,200 @@ async function startService(serviceName) {
     service.status = 'starting';
     sendStatusUpdate(serviceName, 'starting');
 
-    // In production (packaged), Python files are in app.asar.unpacked
-    // In development, they're relative to the electron directory
-    let pythonPath;
+    // Determine working directory and command path
+    let workingDir;
+    let commandPath;
+    
     if (app.isPackaged) {
-      // In packaged app: resources/app.asar.unpacked
-      pythonPath = path.join(process.resourcesPath, 'app.asar.unpacked');
+      // In packaged app: executables are in resources/bin
+      const binPath = path.join(process.resourcesPath, 'bin');
+      commandPath = path.join(binPath, service.command);
+      workingDir = binPath;
+      
+      // For chat2api, set working directory to AppData for writable data files
+      // Templates are bundled in the executable via PyInstaller
+      if (serviceName === 'chat2api') {
+        const appDataChat2api = path.join(app.getPath('userData'), 'chat2api');
+        if (!fs.existsSync(appDataChat2api)) {
+          fs.mkdirSync(appDataChat2api, { recursive: true });
+        }
+        
+        workingDir = appDataChat2api;
+      }
     } else {
-      // In development: one level up from electron directory
-      pythonPath = path.join(__dirname, '..');
+      // In development: Python files are relative to electron directory
+      const pythonPath = path.join(__dirname, '..');
+      workingDir = service.cwd ? path.join(pythonPath, service.cwd) : pythonPath;
+      commandPath = service.command;
     }
     
-    const workingDir = service.cwd ? path.join(pythonPath, service.cwd) : pythonPath;
-    
-    log(`[${serviceName}] Starting service...`);
-    log(`[${serviceName}] Python path: ${pythonPath}`);
-    log(`[${serviceName}] Working dir: ${workingDir}`);
-    log(`[${serviceName}] Command: ${service.command} ${service.args.join(' ')}`);
+    log(`Starting ${service.name}`, 'HEADER', serviceName);
+    logDetail('Port', service.port);
+    logDetail('Working Directory', workingDir);
+    logDetail('Command', `${commandPath} ${service.args.join(' ')}`);
     
     // Check if working directory exists
     if (!fs.existsSync(workingDir)) {
-      log(`[${serviceName}] ERROR: Working directory does not exist!`);
+      logError(`Working directory does not exist`, serviceName);
+      logDetail('Path', workingDir);
       service.status = 'error';
       sendStatusUpdate(serviceName, 'error', `Working directory not found: ${workingDir}`);
       return { success: false, message: `Working directory not found: ${workingDir}` };
     }
     
+    // Check if executable exists (in packaged mode)
+    if (app.isPackaged && !fs.existsSync(commandPath)) {
+      logError(`Executable not found`, serviceName);
+      logDetail('Path', commandPath);
+      logDetail('Solution', 'Rebuild the application with: npm run build:standalone');
+      service.status = 'error';
+      sendStatusUpdate(serviceName, 'error', `Executable not found: ${commandPath}`);
+      return { success: false, message: `Executable not found: ${commandPath}` };
+    }
+    
     // Merge service-specific environment variables with process environment
     const serviceEnv = service.env ? { ...process.env, ...service.env } : { ...process.env };
     
-    service.process = spawn(service.command, service.args, {
+    service.process = spawn(commandPath, service.args, {
       cwd: workingDir,
       env: serviceEnv
     });
 
     service.process.stdout.on('data', (data) => {
-      const message = data.toString();
-      log(`[${serviceName}] ${message}`);
-      sendLog(serviceName, message);
+      const output = data.toString().trim();
+      if (!output) return;
       
-      // Check if service started successfully
-      if (message.includes('Uvicorn running') || message.includes('Started server') || message.includes('Application startup complete')) {
-        service.status = 'running';
-        sendStatusUpdate(serviceName, 'running');
-      }
+      // Split multi-line output and process each line
+      const lines = output.split('\n').filter(line => line.trim());
+      
+      lines.forEach(line => {
+        const trimmedLine = line.trim();
+        
+        // Skip empty lines
+        if (!trimmedLine) return;
+        
+        // Check for startup success indicators
+        if (trimmedLine.includes('Uvicorn running') || trimmedLine.includes('Application startup complete')) {
+          service.status = 'running';
+          logSuccess('Server started successfully', serviceName);
+          logDetail('Endpoint', `http://localhost:${service.port}`);
+          sendStatusUpdate(serviceName, 'running');
+          return;
+        }
+        
+        // Check for other important messages
+        if (trimmedLine.includes('Started server process')) {
+          log('Server process started', 'INFO', serviceName);
+          return;
+        }
+        
+        if (trimmedLine.includes('Waiting for application startup')) {
+          log('Initializing application...', 'INFO', serviceName);
+          return;
+        }
+        
+        // Log everything else
+        log(trimmedLine, 'INFO', serviceName);
+      });
     });
 
     service.process.stderr.on('data', (data) => {
-      const message = data.toString();
-      log(`[${serviceName}] ERROR: ${message}`);
-      sendLog(serviceName, `ERROR: ${message}`);
+      const output = data.toString().trim();
+      if (!output) return;
       
-      // Check for common Python errors
-      if (message.includes('ModuleNotFoundError') || message.includes('No module named')) {
-        log(`[${serviceName}] MISSING PYTHON MODULE!`);
-        service.status = 'error';
-        sendStatusUpdate(serviceName, 'error', 'Missing Python dependencies. Run: pip install -r requirements.txt');
-      }
+      // Split multi-line output and process each line
+      const lines = output.split('\n').filter(line => line.trim());
       
-      // FastAPI/Uvicorn outputs to stderr, so check there too
-      if (message.includes('Uvicorn running') || message.includes('Application startup complete')) {
-        service.status = 'running';
-        sendStatusUpdate(serviceName, 'running');
-      }
+      lines.forEach(line => {
+        const trimmedLine = line.trim();
+        
+        // Skip empty lines
+        if (!trimmedLine) return;
+        
+        // Check for critical errors first
+        if (trimmedLine.includes('ModuleNotFoundError') || trimmedLine.includes('No module named')) {
+          logError('Missing Python module detected', serviceName);
+          logDetail('Solution', 'Run: pip install -r requirements.txt');
+          service.status = 'error';
+          sendStatusUpdate(serviceName, 'error', 'Missing Python dependencies');
+          return;
+        }
+        
+        // Check for startup success (FastAPI/Uvicorn outputs to stderr)
+        if (trimmedLine.includes('Uvicorn running') || trimmedLine.includes('Application startup complete')) {
+          service.status = 'running';
+          logSuccess('Server started successfully', serviceName);
+          logDetail('Endpoint', `http://localhost:${service.port}`);
+          sendStatusUpdate(serviceName, 'running');
+          return;
+        }
+        
+        // Filter out verbose Python warnings but keep important ones
+        if (trimmedLine.includes('DeprecationWarning') || 
+            trimmedLine.includes('UserWarning: `secure` changed to True') ||
+            trimmedLine.includes('RuntimeWarning') ||
+            trimmedLine.includes('site-packages') ||
+            trimmedLine.includes('self._cookies.set') ||
+            trimmedLine.includes('jar.set(') ||
+            trimmedLine.includes('asyncio.set_event_loop_policy') ||
+            trimmedLine.includes('Proactor event loop') ||
+            trimmedLine.includes('add_reader') ||
+            trimmedLine.includes('Read more about it')) {
+          // Skip verbose warnings - don't log to file
+          return;
+        }
+        
+        // Check for important warnings from the service itself
+        if (trimmedLine.includes('WARNING') && trimmedLine.includes('gemini_webapi')) {
+          // Extract just the warning message
+          const warningMatch = trimmedLine.match(/WARNING\s+\|\s+(.+)/);
+          if (warningMatch) {
+            logWarning(warningMatch[1], serviceName);
+          } else {
+            logWarning(trimmedLine, serviceName);
+          }
+          return;
+        }
+        
+        // Check for success messages from the service
+        if (trimmedLine.includes('SUCCESS') && trimmedLine.includes('gemini_webapi')) {
+          const successMatch = trimmedLine.match(/SUCCESS\s+\|\s+(.+)/);
+          if (successMatch) {
+            logSuccess(successMatch[1], serviceName);
+          } else {
+            logSuccess(trimmedLine, serviceName);
+          }
+          return;
+        }
+        
+        // Check for actual errors (not warnings)
+        if (trimmedLine.includes('ERROR') || trimmedLine.includes('Error:') || trimmedLine.includes('Traceback')) {
+          logError(trimmedLine, serviceName);
+          return;
+        }
+        
+        // Check for informational messages
+        if (trimmedLine.includes('Started server process') || 
+            trimmedLine.includes('Waiting for application startup')) {
+          log(trimmedLine.replace('INFO:', '').trim(), 'INFO', serviceName);
+          return;
+        }
+        
+        // For everything else that's meaningful, log it
+        if (trimmedLine.length > 5) {
+          log(trimmedLine, 'INFO', serviceName);
+        }
+      });
     });
 
     service.process.on('close', (code) => {
-      log(`[${serviceName}] Process exited with code ${code}`);
+      log(`Process exited with code ${code}`, code === 0 ? 'INFO' : 'ERROR', serviceName);
       
       // Log more details about why it closed
       if (code !== 0 && code !== null) {
-        log(`[${serviceName}] Process crashed with exit code ${code}`);
+        logError(`Process crashed unexpectedly`, serviceName);
+        logDetail('Exit Code', code);
+        logDetail('Solution', 'Check logs above for error details');
         service.status = 'error';
         sendStatusUpdate(serviceName, 'error', `Process exited with code ${code}`);
       } else {
@@ -375,7 +550,7 @@ async function startService(serviceName) {
     });
 
     service.process.on('error', (err) => {
-      log(`[${serviceName}] Process error: ${err.message}`);
+      logError('Process error occurred', serviceName, err);
       service.status = 'error';
       sendStatusUpdate(serviceName, 'error', err.message);
     });
@@ -398,20 +573,21 @@ async function stopService(serviceName) {
     service.status = 'stopping';
     sendStatusUpdate(serviceName, 'stopping');
     
-    console.log(`[${serviceName}] Stopping service on port ${service.port}`);
+    log(`Stopping ${service.name}`, 'HEADER', serviceName);
+    logDetail('Port', service.port);
     
     // Step 1: Try to kill the process if we have a reference
     if (service.process) {
       try {
-        console.log(`[${serviceName}] Killing process with PID ${service.process.pid}`);
+        log(`Terminating process (PID: ${service.process.pid})`, 'INFO', serviceName);
         // On Windows, use taskkill to ensure process and children are killed
         if (process.platform === 'win32' && service.process.pid) {
           await new Promise((resolve) => {
             exec(`taskkill /F /T /PID ${service.process.pid}`, (error) => {
               if (error) {
-                console.error(`[${serviceName}] Error killing process tree: ${error.message}`);
+                logWarning(`Error killing process tree: ${error.message}`, serviceName);
               } else {
-                console.log(`[${serviceName}] Process tree killed successfully`);
+                logSuccess('Process tree terminated', serviceName);
               }
               resolve();
             });
@@ -420,23 +596,19 @@ async function stopService(serviceName) {
           service.process.kill('SIGTERM');
         }
       } catch (e) {
-        console.error(`[${serviceName}] Error killing process: ${e.message}`);
+        logWarning(`Error killing process: ${e.message}`, serviceName);
       }
       service.process = null;
     }
     
-    // Step 2: ALWAYS kill by port - this ensures we kill whatever is on the port
-    // This is critical for cases where:
-    // - Service was started outside the app
-    // - Process reference was lost
-    // - Service didn't stop properly
-    console.log(`[${serviceName}] Force killing any process on port ${service.port}`);
+    // Step 2: ALWAYS kill by port
+    log(`Killing any process on port ${service.port}`, 'INFO', serviceName);
     const killed = await killProcessOnPort(service.port);
     
     if (killed) {
-      console.log(`[${serviceName}] Successfully killed process on port ${service.port}`);
+      logSuccess(`Port ${service.port} freed`, serviceName);
     } else {
-      console.log(`[${serviceName}] No process found on port ${service.port} (already stopped)`);
+      log(`No process found on port ${service.port}`, 'INFO', serviceName);
     }
     
     // Step 3: Verify port is actually free
@@ -444,18 +616,19 @@ async function stopService(serviceName) {
     const stillInUse = await isPortInUse(service.port);
     
     if (stillInUse) {
-      console.warn(`[${serviceName}] Port ${service.port} is still in use after kill attempt`);
+      logWarning(`Port ${service.port} still in use after kill attempt`, serviceName);
       // Try one more time with more force
       await killProcessOnPort(service.port);
       await new Promise(resolve => setTimeout(resolve, 500));
     }
     
     service.status = 'stopped';
+    logSuccess('Service stopped successfully', serviceName);
     sendStatusUpdate(serviceName, 'stopped');
     
     return { success: true, message: 'Service stopped successfully' };
   } catch (error) {
-    console.error(`[${serviceName}] Error stopping service:`, error);
+    logError('Error stopping service', serviceName, error);
     service.status = 'error';
     sendStatusUpdate(serviceName, 'error', error.message);
     return { success: false, message: error.message };
@@ -463,7 +636,8 @@ async function stopService(serviceName) {
 }
 
 function stopAllServices() {
-  console.log('Stopping all services...');
+  log('Stopping all services', 'HEADER', 'SYSTEM');
+  
   Object.keys(serviceConfig).forEach(serviceName => {
     const service = serviceConfig[serviceName];
     
@@ -471,12 +645,13 @@ function stopAllServices() {
     if (service.process) {
       try {
         if (process.platform === 'win32' && service.process.pid) {
+          log(`Killing ${service.name} (PID: ${service.process.pid})`, 'INFO', serviceName);
           exec(`taskkill /F /T /PID ${service.process.pid}`);
         } else {
           service.process.kill('SIGTERM');
         }
       } catch (e) {
-        console.error(`Error killing ${serviceName}:`, e);
+        logError(`Error killing ${service.name}`, serviceName, e);
       }
       service.process = null;
     }
@@ -485,6 +660,8 @@ function stopAllServices() {
     killProcessOnPort(service.port);
     service.status = 'stopped';
   });
+  
+  logSuccess('All services stopped', 'SYSTEM');
 }
 
 function getServiceStatus(serviceName) {
@@ -554,9 +731,10 @@ ipcMain.handle('save-gemini-tokens', async (event, psid, psidts) => {
     // Write back to file
     fs.writeFileSync(geminiServerPath, content, 'utf8');
     
+    logSuccess('Gemini tokens saved successfully', 'GEMINI');
     return { success: true, message: 'Tokens saved successfully' };
   } catch (error) {
-    console.error('Error saving tokens:', error);
+    logError('Error saving Gemini tokens', 'GEMINI', error);
     return { success: false, message: error.message };
   }
 });
@@ -589,7 +767,7 @@ ipcMain.handle('check-gemini-tokens', async () => {
       psidtsPreview: psidts ? `${psidts.substring(0, 15)}...` : ''
     };
   } catch (error) {
-    console.error('Error checking tokens:', error);
+    logError('Error checking Gemini tokens', 'GEMINI', error);
     return { success: false, hasTokens: false, message: error.message };
   }
 });
@@ -635,9 +813,10 @@ ipcMain.handle('open-token-window', async () => {
       tokenWindow = null;
     });
 
+    logSuccess('Token management window opened', 'SYSTEM');
     return { success: true };
   } catch (error) {
-    console.error('Error opening token window:', error);
+    logError('Error opening token window', 'SYSTEM', error);
     return { success: false, message: error.message };
   }
 });
@@ -647,7 +826,7 @@ ipcMain.handle('get-logs', async () => {
     const logsContent = fs.readFileSync(logFile, 'utf8');
     return { success: true, logs: logsContent };
   } catch (error) {
-    console.error('Error reading logs:', error);
+    logError('Error reading logs', 'SYSTEM', error);
     return { success: false, message: error.message };
   }
 });
@@ -667,12 +846,13 @@ ipcMain.handle('export-logs', async () => {
     if (!result.canceled && result.filePath) {
       const logsContent = fs.readFileSync(logFile, 'utf8');
       fs.writeFileSync(result.filePath, logsContent, 'utf8');
+      logSuccess(`Logs exported to ${result.filePath}`, 'SYSTEM');
       return { success: true, path: result.filePath };
     }
 
     return { success: false, message: 'Export cancelled' };
   } catch (error) {
-    console.error('Error exporting logs:', error);
+    logError('Error exporting logs', 'SYSTEM', error);
     return { success: false, message: error.message };
   }
 });
@@ -680,10 +860,10 @@ ipcMain.handle('export-logs', async () => {
 ipcMain.handle('clear-logs', async () => {
   try {
     fs.writeFileSync(logFile, '', 'utf8');
-    log('=== Logs cleared by user ===');
+    log('Logs cleared by user', 'HEADER', 'SYSTEM');
     return { success: true };
   } catch (error) {
-    console.error('Error clearing logs:', error);
+    logError('Error clearing logs', 'SYSTEM', error);
     return { success: false, message: error.message };
   }
 });

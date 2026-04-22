@@ -7,10 +7,11 @@ from fastapi.responses import HTMLResponse
 from app import app, templates
 from gateway.login import login_html
 from utils.kv_utils import set_value_for_key_list
+from utils.paths import get_template_path
 
-with open("templates/chatgpt_context_1.json", "r", encoding="utf-8") as f:
+with open(get_template_path("chatgpt_context_1.json"), "r", encoding="utf-8") as f:
     chatgpt_context_1 = json.load(f)
-with open("templates/chatgpt_context_2.json", "r", encoding="utf-8") as f:
+with open(get_template_path("chatgpt_context_2.json"), "r", encoding="utf-8") as f:
     chatgpt_context_2 = json.load(f)
 
 

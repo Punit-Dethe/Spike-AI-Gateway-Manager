@@ -10,12 +10,21 @@ files:
   - dist/**/*
   - electron/**/*
   - python/**/*
+  - bin/**/*
   - requirements.txt
   - "!python/**/__pycache__"
   - "!python/**/*.pyc"
   - "!python/**/.git"
   - "!python/**/.github"
   - "!python/**/node_modules"
+  - "!python/**/dist"
+  - "!python/**/build"
+
+extraResources:
+  - from: bin
+    to: bin
+    filter:
+      - "**/*.exe"
 
 asarUnpack:
   - python/**/*

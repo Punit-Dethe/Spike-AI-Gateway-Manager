@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 
 from utils.configs import enable_gateway, api_prefix
+from utils.paths import get_base_path
+import os
 
 warnings.filterwarnings("ignore")
 
@@ -31,7 +33,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=os.path.join(get_base_path(), "templates"))
 security_scheme = HTTPBearer()
 
 from app import app

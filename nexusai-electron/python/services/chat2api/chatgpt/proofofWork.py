@@ -16,10 +16,10 @@ from utils.configs import conversation_only
 cores = [8, 16, 24, 32]
 timeLayout = "%a %b %d %Y %H:%M:%S"
 
-# Use writable cache directory - check environment variable or use temp directory
+# Use writable cache directory in data folder for consistency
 import os
-import tempfile
-cache_dir = os.environ.get('CACHE_DIR', os.path.join(tempfile.gettempdir(), 'chat2api_cache'))
+from utils.paths import get_data_path
+cache_dir = os.path.join(get_data_path(), 'pow_config_cache')
 os.makedirs(cache_dir, exist_ok=True)
 cache = dc.Cache(cache_dir)
 cached_scripts = []

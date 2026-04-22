@@ -1,5 +1,6 @@
 import { Home, FileText, Activity, MessageSquare, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 import hedgehogIcon from '../assets/hedgehog.png';
 
 type Tab = 'chat' | 'dashboard' | 'services' | 'logs';
@@ -11,8 +12,73 @@ interface SidebarProps {
   chatStarted: boolean;
 }
 
-// Add a prop to track if there are messages
-// We'll check chatStarted as a proxy for "has the user interacted with chat"
+// Animated Logo Component
+const AnimatedLogo = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [useVideo, setUseVideo] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !useVideo) return;
+
+    // Function to play animation
+    const playAnimation = () => {
+      if (isPlaying) return;
+      
+      setIsPlaying(true);
+      video.currentTime = 0;
+      video.play().catch(() => {
+        // If video fails to play, fallback to static image
+        setUseVideo(false);
+      });
+    };
+
+    // Function to handle video end
+    const handleVideoEnd = () => {
+      setIsPlaying(false);
+      // Pause on last frame
+      video.pause();
+    };
+
+    // Add event listener
+    video.addEventListener('ended', handleVideoEnd);
+
+    // Play animation every 7 seconds
+    intervalRef.current = setInterval(playAnimation, 7000);
+    
+    // Play once on mount after a short delay
+    const initialTimeout = setTimeout(playAnimation, 500);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      clearTimeout(initialTimeout);
+      video.removeEventListener('ended', handleVideoEnd);
+    };
+  }, [useVideo]);
+
+  // Try to load video, fallback to image if it fails
+  if (useVideo) {
+    return (
+      <video
+        ref={videoRef}
+        className="w-10 h-10"
+        muted
+        playsInline
+        preload="auto"
+        onError={() => setUseVideo(false)}
+      >
+        <source src="/src/assets/icons8-hedgehog-ezgif_com-gif-to.webm" type="video/webm" />
+      </video>
+    );
+  }
+
+  // Fallback to static image
+  return <img src={hedgehogIcon} alt="Logo" className="w-10 h-10" />;
+};
 
 const Sidebar = ({ activeTab, onTabChange, onNewChat, chatStarted }: SidebarProps) => {
   const handleChatClick = () => {
@@ -28,9 +94,9 @@ const Sidebar = ({ activeTab, onTabChange, onNewChat, chatStarted }: SidebarProp
     <div className="w-56 bg-sand-200 flex flex-col" style={{ marginTop: '32px', height: 'calc(100vh - 32px)' }}>
       {/* Logo */}
       <div className="p-5">
-        <div className="flex items-center gap-2.5">
-          <img src={hedgehogIcon} alt="Logo" className="w-7 h-7" />
-          <span className="font-sans font-semibold text-base text-gray-900">Spike</span>
+        <div className="flex items-center justify-center gap-3">
+          <AnimatedLogo />
+          <span className="font-sans font-semibold text-xl text-gray-900">Spike</span>
         </div>
       </div>
 
