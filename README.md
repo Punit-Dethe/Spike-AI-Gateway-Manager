@@ -308,16 +308,16 @@ spike/
 ## Troubleshooting
 
 **Services won't start**  
-Check that ports 8000, 6969, and 5005 are available. Restart Spike if needed.
+If a port is already in use, click "Stop" on the service to kill any existing processes, then click "Start" again. This ensures a clean restart.
 
 **Authentication errors**  
-Update your tokens in the Services tab. Tokens expire and need periodic renewal.
+Update your tokens in the Services tab. Tokens expire and need periodic renewal. After updating, restart the affected service.
 
 **Slow responses**  
-Check your internet connection. Try a different model or provider.
+Check your internet connection. Try a different model or provider. Faster models include `gemini-3-flash` and `gpt-4o-mini`.
 
 **Connection refused**  
-Ensure services are running (green status in Dashboard). Start services if stopped.
+Ensure services are running (green status in Dashboard). If services show red, click "Stop" then "Start" to restart them.
 
 **View detailed logs**  
 Open the Logs tab in Spike. Use Copy or Export to share logs when reporting issues.
@@ -353,4 +353,4 @@ Built with Electron, React, FastAPI, and Python. Special thanks to the Chat2API 
 
 - **Issues**: [GitHub Issues](https://github.com/yourusername/spike/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/yourusername/spike/discussions)
-- **Documentation**: [API Docs](API_DOCUMENTATION.md) | [User Guide](nexusai-electron/USER_GUIDE.md)
+- **Documentation**: [API Docs](API_DOCUMENTATION.md) | [Command Reference](COMMAND_REFERENCE.md) | [User Guide](nexusai-electron/USER_GUIDE.md)

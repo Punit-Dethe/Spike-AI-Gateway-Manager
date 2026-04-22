@@ -826,7 +826,11 @@ def analyze_data(data_description, question):
 }
 ```
 
-**Solution**: Start Spike services from the Dashboard
+**Solution:** 
+1. Open Spike Dashboard
+2. Check service status (should be green)
+3. If service shows red or stopped, click "Stop" then "Start"
+4. If port conflict occurs, "Stop" will kill existing processes
 
 #### Invalid Model
 
@@ -977,6 +981,13 @@ curl http://localhost:6969/health
 # Test Chat2API directly
 curl http://localhost:5005/health
 ```
+
+**If services aren't responding:**
+1. Open Spike application
+2. Go to Services or Dashboard tab
+3. Click "Stop" on the service (kills any existing processes)
+4. Wait 2-3 seconds
+5. Click "Start" to restart cleanly
 
 ### View Logs
 
