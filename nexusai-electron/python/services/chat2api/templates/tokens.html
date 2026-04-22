@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Token Management - NexusAI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'sand': {
+                            50: '#F5F3EF',
+                            100: '#EBE7DD',
+                            200: '#E4E0D5',
+                            300: '#D4CFC1',
+                        },
+                        'accent': '#4A90E2',
+                        'accent-hover': '#357ABD',
+                    },
+                    fontFamily: {
+                        'serif': ['Crimson Text', 'serif'],
+                        'sans': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        body::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Hide scrollbar for IE, Edge and Firefox */
+        body {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const apiPrefix = "{{ api_prefix }}";
+            const uploadForm = document.getElementById('uploadForm');
+            const clearForm = document.getElementById('clearForm');
+            const errorButton = document.getElementById('errorButton');
+
+            if (apiPrefix === "None") {
+                uploadForm.action = "/tokens/upload";
+                clearForm.action = "/tokens/clear";
+                errorButton.dataset.api = "/tokens/error";
+            } else {
+                uploadForm.action = `/${apiPrefix}/tokens/upload`;
+                clearForm.action = `/${apiPrefix}/tokens/clear`;
+                errorButton.dataset.api = `/${apiPrefix}/tokens/error`;
+            }
+
+            errorButton.addEventListener('click', async () => {
+                const response = await fetch(errorButton.dataset.api, {
+                    method: 'POST',
+                });
+                const result = await response.json();
+                const errorTokens = result.error_tokens;
+
+                const errorModal = document.getElementById('errorModal');
+                const errorModalContent = document.getElementById('errorModalContent');
+
+                errorModalContent.innerHTML = errorTokens.map(token => `<p class="font-mono text-sm break-all mb-2">${token}</p>`).join('');
+                errorModal.classList.remove('hidden');
+            });
+
+            document.getElementById('errorModalClose').addEventListener('click', () => {
+                document.getElementById('errorModal').classList.add('hidden');
+            });
+
+            document.getElementById('errorModalCopy').addEventListener('click', () => {
+                const errorModalContent = document.getElementById('errorModalContent');
+                const textToCopy = errorModalContent.innerText.replace(/\n\n/g, '\n');
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    alert('Error tokens copied to clipboard');
+                }).catch(err => {
+                    alert('Copy failed, please copy manually');
+                });
+            });
+        });
+    </script>
+</head>
+<body class="bg-sand-200 flex justify-center items-center min-h-screen font-sans">
+    <div class="bg-sand-200 p-10 rounded-3xl w-full max-w-2xl">
+        <h1 class="text-4xl font-serif font-bold text-gray-900 mb-2 text-center">Token Management</h1>
+        <p class="text-gray-600 text-center mb-6">Manage your ChatGPT access tokens</p>
+        
+        <form class="mb-4" id="uploadForm" method="post">
+            <div class="flex items-center justify-between mb-2">
+                <label class="text-gray-900 font-semibold text-lg">Add Tokens</label>
+                <div class="bg-sand-100 rounded-xl px-4 py-2">
+                    <span class="text-gray-700 text-sm font-medium">Available Tokens: </span>
+                    <span class="text-gray-900 font-bold text-lg">{{ tokens_count }}</span>
+                </div>
+            </div>
+            <textarea 
+                class="w-full p-4 mb-3 bg-sand-50 border-2 border-transparent rounded-2xl focus:outline-none focus:border-accent transition-all resize-none text-gray-900 font-mono text-sm" 
+                name="text" 
+                placeholder="Paste your tokens here (one per line)&#10;Supports AccessToken or RefreshToken" 
+                rows="6"
+            ></textarea>
+            <p class="text-gray-600 text-sm mb-3">Note: If using Docker with mounted data folder, tokens persist after restart</p>
+            <button 
+                class="w-full bg-sand-300 text-gray-900 font-semibold py-3 rounded-2xl hover:bg-sand-400 transition-all duration-150 hover:shadow-md active:scale-[0.98]" 
+                type="submit"
+            >
+                Upload Tokens
+            </button>
+        </form>
+        
+        <div class="flex gap-3 mt-4">
+            <button 
+                id="errorButton" 
+                class="flex-1 bg-sand-300 text-gray-900 font-semibold py-3 rounded-2xl hover:bg-sand-400 transition-all duration-150 hover:shadow-sm active:scale-[0.98]"
+            >
+                View Error Tokens
+            </button>
+            
+            <form id="clearForm" method="post" class="flex-1">
+                <button 
+                    class="w-full bg-sand-300 text-gray-900 font-semibold py-3 rounded-2xl hover:bg-sand-400 transition-all duration-150 hover:shadow-sm active:scale-[0.98]" 
+                    type="submit"
+                    onclick="return confirm('Are you sure you want to clear all tokens? This action cannot be undone.')"
+                >
+                    Clear All Tokens
+                </button>
+            </form>
+        </div>
+        
+        <p class="text-gray-600 text-sm text-center mt-4">Clearing will remove both uploaded and error tokens</p>
+    </div>
+    
+    <!-- Error Modal -->
+    <div id="errorModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex justify-center items-center hidden">
+        <div class="bg-sand-200 p-8 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            <h2 class="text-3xl font-serif font-bold text-gray-900 mb-4">Error Tokens</h2>
+            <div class="bg-sand-100 rounded-2xl p-4 mb-6 max-h-96 overflow-y-auto">
+                <div id="errorModalContent" class="text-left"></div>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button 
+                    id="errorModalCopy" 
+                    class="bg-sand-300 text-gray-900 font-semibold py-2 px-6 rounded-2xl hover:bg-sand-400 transition-all duration-150 hover:shadow-sm active:scale-[0.98]"
+                >
+                    Copy
+                </button>
+                <button 
+                    id="errorModalClose" 
+                    class="bg-sand-300 text-gray-900 font-semibold py-2 px-6 rounded-2xl hover:bg-sand-400 transition-all duration-150 hover:shadow-sm active:scale-[0.98]"
+                >
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
