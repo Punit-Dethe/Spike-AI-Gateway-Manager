@@ -1,0 +1,42 @@
+appId: com.spike.gateway
+productName: Spike
+copyright: Copyright © 2024 Spike
+
+directories:
+  output: dist-installer
+  buildResources: assets
+
+files:
+  - dist/**/*
+  - electron/**/*
+  - python/**/*
+  - requirements.txt
+  - "!python/**/__pycache__"
+  - "!python/**/*.pyc"
+  - "!python/**/.git"
+  - "!python/**/.github"
+  - "!python/**/node_modules"
+
+asarUnpack:
+  - python/**/*
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: assets/icon-256.png
+  artifactName: ${productName}-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Spike
+  license: LICENSE.txt
+  warningsAsErrors: false
+
+publish: null
+

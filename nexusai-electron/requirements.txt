@@ -1,0 +1,23 @@
+# NexusAI Electron - Python Dependencies
+
+# HTTP Server & Client
+fastapi==0.115.3
+uvicorn>=0.27.0
+httpx>=0.26.0
+
+# Chat2API Dependencies
+python-multipart==0.0.13
+curl_cffi==0.7.3
+tiktoken
+websockets
+pillow
+pybase64
+jinja2
+APScheduler
+ua-generator
+pyjwt
+diskcache
+
+# Utilities
+python-dotenv>=1.0.0
+psutil>=5.9.0

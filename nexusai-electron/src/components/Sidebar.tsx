@@ -1,0 +1,126 @@
+import { Home, FileText, Activity, MessageSquare, Plus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import hedgehogIcon from '../assets/hedgehog.png';
+
+type Tab = 'chat' | 'dashboard' | 'services' | 'logs';
+
+interface SidebarProps {
+  activeTab: Tab;
+  onTabChange: (tab: Tab) => void;
+  onNewChat: () => void;
+  chatStarted: boolean;
+}
+
+// Add a prop to track if there are messages
+// We'll check chatStarted as a proxy for "has the user interacted with chat"
+
+const Sidebar = ({ activeTab, onTabChange, onNewChat, chatStarted }: SidebarProps) => {
+  const handleChatClick = () => {
+    onTabChange('chat');
+  };
+
+  const handleNewChatClick = () => {
+    onNewChat();
+    onTabChange('chat');
+  };
+
+  return (
+    <div className="w-56 bg-sand-200 flex flex-col" style={{ marginTop: '32px', height: 'calc(100vh - 32px)' }}>
+      {/* Logo */}
+      <div className="p-5">
+        <div className="flex items-center gap-2.5">
+          <img src={hedgehogIcon} alt="Logo" className="w-7 h-7" />
+          <span className="font-sans font-semibold text-base text-gray-900">Spike</span>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-3">
+        <div className="space-y-1">
+          {/* Chat Button with New Chat Option */}
+          <div>
+            <button
+              onClick={handleChatClick}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-base font-medium rounded-2xl transition-all duration-150 ${
+                activeTab === 'chat'
+                  ? 'text-gray-900 bg-sand-100'
+                  : 'text-gray-700 hover:text-gray-900 hover:bg-sand-100/50 active:bg-sand-100'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4" />
+              Chat
+            </button>
+
+            {/* New Chat Option - Shows when chat is active and started */}
+            <AnimatePresence>
+              {activeTab === 'chat' && chatStarted && (
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  onClick={handleNewChatClick}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 pl-9 text-sm font-medium rounded-2xl text-gray-700 hover:text-accent transition-colors duration-200"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  New Chat
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </div>
+          
+          <button
+            onClick={() => {
+              onTabChange('dashboard');
+            }}
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-base font-medium rounded-2xl transition-all duration-150 ${
+              activeTab === 'dashboard'
+                ? 'text-gray-900 bg-sand-100'
+                : 'text-gray-700 hover:text-gray-900 hover:bg-sand-100/50 active:bg-sand-100'
+            }`}
+          >
+            <Home className="w-4 h-4" />
+            Dashboard
+          </button>
+          
+          <button
+            onClick={() => {
+              onTabChange('services');
+            }}
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-base font-medium rounded-2xl transition-all duration-150 ${
+              activeTab === 'services'
+                ? 'text-gray-900 bg-sand-100'
+                : 'text-gray-700 hover:text-gray-900 hover:bg-sand-100/50 active:bg-sand-100'
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            Services
+          </button>
+          
+          <button
+            onClick={() => {
+              onTabChange('logs');
+            }}
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-base font-medium rounded-2xl transition-all duration-150 ${
+              activeTab === 'logs'
+                ? 'text-gray-900 bg-sand-100'
+                : 'text-gray-700 hover:text-gray-900 hover:bg-sand-100/50 active:bg-sand-100'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            Logs
+          </button>
+        </div>
+      </nav>
+
+      {/* Footer */}
+      <div className="p-4">
+        <div className="text-xs text-gray-600">
+          Version 1.0.0
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Sidebar;
