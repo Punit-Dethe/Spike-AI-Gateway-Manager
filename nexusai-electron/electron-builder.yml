@@ -25,6 +25,11 @@ extraResources:
     to: bin
     filter:
       - "**/*.exe"
+  - from: assets
+    to: assets
+    filter:
+      - "*.png"
+      - "*.ico"
 
 asarUnpack:
   - python/**/*

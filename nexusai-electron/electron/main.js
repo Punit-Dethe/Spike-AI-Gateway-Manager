@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, shell } = require('electron');
 const path = require('path');
 const { spawn, exec } = require('child_process');
 const net = require('net');
@@ -183,16 +183,45 @@ async function checkExistingServices() {
 }
 
 function createTray() {
-  // Try to create tray icon, but don't fail if icon is missing
-  const iconPath = path.join(__dirname, '../assets/icon.png');
-  const fs = require('fs');
+  // Determine icon path based on whether app is packaged
+  let iconPath;
+  let iconPaths = [];
   
-  if (!fs.existsSync(iconPath)) {
-    logWarning('Tray icon not found, skipping tray creation', 'SYSTEM');
+  if (app.isPackaged) {
+    // In production: try multiple possible locations
+    iconPaths = [
+      path.join(process.resourcesPath, 'assets', 'icon.png'),
+      path.join(process.resourcesPath, 'assets', 'icon.ico'),
+      path.join(process.resourcesPath, 'icon.png'),
+      path.join(process.resourcesPath, 'icon.ico'),
+      path.join(__dirname, '../assets/icon.png'),
+      path.join(__dirname, '../assets/icon.ico')
+    ];
+  } else {
+    // In development: icon is relative to electron folder
+    iconPaths = [
+      path.join(__dirname, '../assets/icon.png'),
+      path.join(__dirname, '../assets/icon.ico')
+    ];
+  }
+  
+  // Find first existing icon
+  for (const testPath of iconPaths) {
+    if (fs.existsSync(testPath)) {
+      iconPath = testPath;
+      break;
+    }
+  }
+  
+  if (!iconPath) {
+    logWarning(`Tray icon not found in any of these locations:`, 'SYSTEM');
+    iconPaths.forEach(p => logDetail('Tried', p));
+    logWarning('Skipping tray creation', 'SYSTEM');
     return;
   }
   
   try {
+    log(`Creating tray with icon: ${iconPath}`, 'INFO', 'SYSTEM');
     tray = new Tray(iconPath);
     
     const contextMenu = Menu.buildFromTemplate([
@@ -223,6 +252,7 @@ function createTray() {
     });
     
     logSuccess('System tray created successfully', 'SYSTEM');
+    logDetail('Icon Path', iconPath);
   } catch (error) {
     logError('Failed to create tray icon', 'SYSTEM', error);
   }
@@ -399,6 +429,32 @@ async function startService(serviceName) {
     // Merge service-specific environment variables with process environment
     const serviceEnv = service.env ? { ...process.env, ...service.env } : { ...process.env };
     
+    // For Gemini service, load tokens from config file
+    if (serviceName === 'gemini') {
+      const configPath = path.join(app.getPath('userData'), 'gemini-config.json');
+      if (fs.existsSync(configPath)) {
+        try {
+          const configContent = fs.readFileSync(configPath, 'utf8');
+          const config = JSON.parse(configContent);
+          
+          if (config.psid && config.psidts) {
+            serviceEnv.GEMINI_PSID = config.psid;
+            serviceEnv.GEMINI_PSIDTS = config.psidts;
+            log('Loaded Gemini tokens from config', 'INFO', serviceName);
+            logDetail('PSID', `${config.psid.substring(0, 15)}...`);
+            logDetail('PSIDTS', `${config.psidts.substring(0, 15)}...`);
+          } else {
+            logWarning('Gemini tokens not found in config file', serviceName);
+          }
+        } catch (error) {
+          logError('Failed to load Gemini config', serviceName, error);
+        }
+      } else {
+        logWarning('Gemini config file not found. Please configure tokens.', serviceName);
+        logDetail('Expected Path', configPath);
+      }
+    }
+    
     service.process = spawn(commandPath, service.args, {
       cwd: workingDir,
       env: serviceEnv
@@ -412,10 +468,25 @@ async function startService(serviceName) {
       const lines = output.split('\n').filter(line => line.trim());
       
       lines.forEach(line => {
-        const trimmedLine = line.trim();
+        let trimmedLine = line.trim();
         
         // Skip empty lines
         if (!trimmedLine) return;
+        
+        // Truncate long JWT tokens in logs
+        if (trimmedLine.includes('Request token:') && trimmedLine.length > 200) {
+          const tokenMatch = trimmedLine.match(/Request token: (eyJ[^\s]+)/);
+          if (tokenMatch) {
+            const token = tokenMatch[1];
+            const truncated = token.substring(0, 50) + '...' + token.substring(token.length - 20);
+            trimmedLine = trimmedLine.replace(token, truncated);
+          }
+        }
+        
+        // Truncate any other very long lines
+        if (trimmedLine.length > 500) {
+          trimmedLine = trimmedLine.substring(0, 500) + '... [truncated]';
+        }
         
         // Check for startup success indicators
         if (trimmedLine.includes('Uvicorn running') || trimmedLine.includes('Application startup complete')) {
@@ -713,26 +784,26 @@ ipcMain.handle('get-all-status', async () => {
 ipcMain.handle('save-gemini-tokens', async (event, psid, psidts) => {
   try {
     const fs = require('fs');
-    const geminiServerPath = path.join(__dirname, '../python/services/gemini/gemini_server.py');
+    const configPath = path.join(app.getPath('userData'), 'gemini-config.json');
     
-    // Read the current file
-    let content = fs.readFileSync(geminiServerPath, 'utf8');
+    // Save tokens to config file
+    const config = {
+      psid: psid,
+      psidts: psidts,
+      updatedAt: new Date().toISOString()
+    };
     
-    // Replace the PSID and PSIDTS values
-    content = content.replace(
-      /PSID\s*=\s*"[^"]*"/,
-      `PSID   = "${psid}"`
-    );
-    content = content.replace(
-      /PSIDTS\s*=\s*"[^"]*"/,
-      `PSIDTS = "${psidts}"`
-    );
-    
-    // Write back to file
-    fs.writeFileSync(geminiServerPath, content, 'utf8');
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
     
     logSuccess('Gemini tokens saved successfully', 'GEMINI');
-    return { success: true, message: 'Tokens saved successfully' };
+    logDetail('Config Path', configPath);
+    logWarning('Please RESTART the Gemini service for changes to take effect', 'GEMINI');
+    
+    return { 
+      success: true, 
+      message: 'Tokens saved successfully! Please restart the Gemini service to apply changes.',
+      requiresRestart: true
+    };
   } catch (error) {
     logError('Error saving Gemini tokens', 'GEMINI', error);
     return { success: false, message: error.message };
@@ -742,17 +813,26 @@ ipcMain.handle('save-gemini-tokens', async (event, psid, psidts) => {
 ipcMain.handle('check-gemini-tokens', async () => {
   try {
     const fs = require('fs');
-    const geminiServerPath = path.join(__dirname, '../python/services/gemini/gemini_server.py');
+    const configPath = path.join(app.getPath('userData'), 'gemini-config.json');
     
-    // Read the current file
-    const content = fs.readFileSync(geminiServerPath, 'utf8');
+    // Check if config file exists
+    if (!fs.existsSync(configPath)) {
+      return {
+        success: true,
+        hasTokens: false,
+        psidLength: 0,
+        psidtsLength: 0,
+        psidPreview: '',
+        psidtsPreview: ''
+      };
+    }
     
-    // Extract PSID and PSIDTS values
-    const psidMatch = content.match(/PSID\s*=\s*"([^"]*)"/);
-    const psidtsMatch = content.match(/PSIDTS\s*=\s*"([^"]*)"/);
+    // Read config file
+    const configContent = fs.readFileSync(configPath, 'utf8');
+    const config = JSON.parse(configContent);
     
-    const psid = psidMatch ? psidMatch[1] : '';
-    const psidts = psidtsMatch ? psidtsMatch[1] : '';
+    const psid = config.psid || '';
+    const psidts = config.psidts || '';
     
     // Check if tokens are set (not empty and not placeholder values)
     const hasValidPsid = psid && psid.length > 10 && psid.startsWith('g.a');

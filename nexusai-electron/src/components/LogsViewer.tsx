@@ -112,7 +112,7 @@ const LogsViewer = () => {
 
     // Check for header line (has timestamp and service but no level)
     const headerMatch = line.match(/^\[([^\]]+)\]\s+([A-Z\s]+)\s+\|\s+(.+)$/);
-    if (headerMatch && !headerMatch[3].includes('│')) {
+    if (headerMatch && !headerMatch[3].includes('│') && !headerMatch[3].match(/^(SUCCESS|ERROR|WARNING|INFO)/)) {
       return {
         type: 'header',
         timestamp: headerMatch[1],
@@ -131,6 +131,33 @@ const LogsViewer = () => {
         level: logMatch[3].trim(),
         symbol: logMatch[4],
         message: logMatch[5]
+      };
+    }
+
+    // Check for log line without symbol (Chat2API format with extra timestamp)
+    // Format: [timestamp] SERVICE | LEVEL → timestamp | LEVEL | message
+    const chat2apiLogMatch = line.match(/^\[([^\]]+)\]\s+([A-Z\s]+)\s+\|\s+([A-Z\s]+)\s+→\s+[\d\-:\s,]+\s+\|\s+([A-Z]+)\s+\|\s+(.+)$/);
+    if (chat2apiLogMatch) {
+      return {
+        type: 'log',
+        timestamp: chat2apiLogMatch[1],
+        service: chat2apiLogMatch[2].trim(),
+        level: chat2apiLogMatch[4], // Use the second level indicator (from Chat2API itself)
+        symbol: '→',
+        message: chat2apiLogMatch[5]
+      };
+    }
+
+    // Check for log line without symbol (simple format)
+    const simpleLogMatch = line.match(/^\[([^\]]+)\]\s+([A-Z\s]+)\s+\|\s+([A-Z\s]+)\s+→\s+(.+)$/);
+    if (simpleLogMatch) {
+      return {
+        type: 'log',
+        timestamp: simpleLogMatch[1],
+        service: simpleLogMatch[2].trim(),
+        level: simpleLogMatch[3].trim(),
+        symbol: '→',
+        message: simpleLogMatch[4]
       };
     }
 

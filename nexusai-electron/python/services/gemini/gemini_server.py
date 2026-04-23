@@ -1,14 +1,28 @@
 import asyncio
 import uvicorn
+import os
+import sys
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional, Any
 from gemini_webapi import GeminiClient
 
-# ── PASTE YOUR COOKIES HERE ──────────────────────────────
-PSID   = "g.a0009AhUeW27GYF4j6CXQXHK5Pb_QFcuDpu6tOdJjicOh3gYSd51DeW5PYRCzRYLDEEoDDUjbAACgYKAVgSARcSFQHGX2MioHlDGC6IV_vGFLHGM03WORoVAUF8yKqcuo37QmlgOkSTGai7iepQ0076"
-PSIDTS = "sidts-CjcBWhotCVYTJ8cTMNPaKamY5Go8XNMNq_1dfUv28y-5V4EHdd98ttfxiP9RGTA9voLFi5pitAr7EAA"
+# ── TOKEN CONFIGURATION ──────────────────────────────────
+# Tokens are loaded from environment variables or config file
+# DO NOT hardcode tokens here - they will be exposed in the build!
+
+def get_token(key, default=""):
+    """Get token from environment variable or return default"""
+    return os.environ.get(key, default)
+
+PSID   = get_token('GEMINI_PSID', '')
+PSIDTS = get_token('GEMINI_PSIDTS', '')
+
+# Validate tokens
+if not PSID or not PSIDTS:
+    print("[WARNING] Gemini tokens not configured!")
+    print("[INFO] Set GEMINI_PSID and GEMINI_PSIDTS environment variables")
 # ─────────────────────────────────────────────────────────
 
 DEFAULT_MODEL = "gemini-3-flash"
@@ -32,10 +46,21 @@ client = None
 @app.on_event("startup")
 async def startup():
     global client
-    client = GeminiClient(PSID, PSIDTS)
-    await client.init(timeout=30)
-    print("[OK] Gemini client ready!")
-    print(f"[INFO] Default model: {DEFAULT_MODEL}")
+    if not PSID or not PSIDTS:
+        print("[ERROR] Gemini tokens not configured! Server will not work.")
+        print("[INFO] Please configure tokens in the Spike app.")
+        return
+    
+    try:
+        client = GeminiClient(PSID, PSIDTS)
+        await client.init(timeout=30)
+        print("[OK] Gemini client ready!")
+        print(f"[INFO] Default model: {DEFAULT_MODEL}")
+        print(f"[INFO] PSID: {PSID[:15]}...")
+        print(f"[INFO] PSIDTS: {PSIDTS[:15]}...")
+    except Exception as e:
+        print(f"[ERROR] Failed to initialize Gemini client: {e}")
+        print("[INFO] Please check your tokens and try again.")
 
 class Message(BaseModel):
     role: str
