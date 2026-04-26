@@ -5,7 +5,7 @@ import Header from './components/Header';
 import ServiceCard from './components/ServiceCard';
 import EndpointCard from './components/EndpointCard';
 import StatusBar from './components/StatusBar';
-import QuickStart from './components/QuickStart';
+import ApiExamples from './components/ApiExamples';
 import ChatInterface from './components/ChatInterface';
 import LogsViewer from './components/LogsViewer';
 import TitleBar from './components/TitleBar';
@@ -53,26 +53,6 @@ function App() {
       window.electron.removeServiceStatusListener();
     };
   }, []);
-
-  const handleStartServices = async (model: string) => {
-    if (model === 'gemini') {
-      // Start Gemini service first
-      await window.electron.startService('gemini');
-      
-      // Wait a bit for Gemini to initialize, then start proxy
-      setTimeout(async () => {
-        await window.electron.startService('proxy');
-      }, 2000); // 2 second delay to ensure Gemini starts properly
-    } else if (model === 'chatgpt') {
-      // Start Chat2API service first
-      await window.electron.startService('chat2api');
-      
-      // Wait a bit for Chat2API to initialize, then start proxy
-      setTimeout(async () => {
-        await window.electron.startService('proxy');
-      }, 2000); // 2 second delay to ensure Chat2API starts properly
-    }
-  };
 
   return (
     <div className="flex h-screen bg-sand-50">
@@ -128,11 +108,8 @@ function App() {
                 {/* API Endpoint Card */}
                 <EndpointCard />
 
-                {/* Quick Start */}
-                <QuickStart 
-                  serviceStatus={serviceStatus}
-                  onStartServices={handleStartServices}
-                />
+                {/* API Examples */}
+                <ApiExamples />
               </motion.div>
             )}
 
