@@ -556,6 +556,10 @@ function generateReadme() {
 This folder contains a standalone Gemini API server that you can run locally
 or deploy to any hosting platform.
 
+CREATED BY: Spike App (Local Setup Feature)
+SERVER PORT: 7777 (separate from main Spike app on port 6969)
+ISOLATION: Completely independent - no connection to main app
+
 
 QUICK START
 ================================================================================
@@ -565,16 +569,16 @@ Just run this one command:
     python setup.py
 
 This will:
-  1. Install all dependencies
-  2. Start the server on port 7777
-  3. Test that it's working
-  4. Keep the server running
+  1. Install all dependencies (fastapi, uvicorn, gemini-webapi, etc.)
+  2. Start the server on http://localhost:7777
+  3. Test that it's working with a sample API call
+  4. Keep the server running until you press Ctrl+C
 
 
 WHAT YOU'LL SEE
 ================================================================================
 
-Clean, minimal output:
+Clean, minimal output showing only what matters:
 
   ╔════════════════════════════════════════════════════════╗
   ║           GEMINI API SERVER - SETUP                    ║
@@ -588,23 +592,76 @@ Clean, minimal output:
   ────────────────────────────────────────────────────────
   Server: http://localhost:7777
   ✓ Server started
+    Token ID: a1b2c3d4
 
   [3/3] Testing API
   ────────────────────────────────────────────────────────
   ✓ API is working!
+  
+  Response:
+  ────────────────────────────────────────────────────────
+  [ASCII art of clouds]
 
-If something goes wrong, you'll see a clear error message and a debug log
-will be saved to setup_debug.log for troubleshooting.
+If something goes wrong, you'll see:
+  • Clear error message (e.g., "Authentication Failed")
+  • Specific reason for the failure
+  • Full debug log saved to setup_debug.log
+
+
+TOKEN VERIFICATION
+================================================================================
+
+What is Token ID?
+------------------------------------------------------------
+The Token ID is a unique 8-character identifier generated from your tokens.
+It helps you verify which tokens are actually being used by the server.
+
+Example: Token ID: a1b2c3d4
+
+Why is this useful?
+------------------------------------------------------------
+  • Confirms your tokens are being used (not cached ones)
+  • Different tokens = Different Token ID
+  • Same tokens = Same Token ID
+  • Easy to verify token switching works correctly
+
+How to verify:
+------------------------------------------------------------
+  1. Create setup with Token Set A → Note Token ID (e.g., a1b2c3d4)
+  2. Create setup with Token Set B → Note Token ID (e.g., e5f6g7h8)
+  3. Different IDs confirm different tokens are being used
+
+Where to find it:
+------------------------------------------------------------
+  • Displayed after "Server started" in setup output
+  • Shown in error messages for debugging
+  • Stored in gemini_server.py as TOKEN_ID variable
 
 
 IMPORTANT NOTES
 ================================================================================
 
 Token Management:
-  • Your tokens are stored in gemini_server.py (lines 14-15)
-  • The server uses these tokens for authentication
+------------------------------------------------------------
+  • Your tokens are stored in gemini_server.py (lines 26-27)
+  • PSID and PSIDTS are required for authentication
   • Each setup creates its own isolated profile directory
-  • To use different tokens, create a new setup with the new tokens
+  • Token ID is generated from your token values (MD5 hash)
+
+Isolation:
+------------------------------------------------------------
+  • This server is COMPLETELY SEPARATE from the Spike app
+  • Uses port 7777 (Spike app uses 6969)
+  • Has its own token storage
+  • Has its own cache directory
+  • No connection to main app's services
+
+Security:
+------------------------------------------------------------
+  • Keep gemini_server.py secure (contains your tokens)
+  • Don't share this file publicly
+  • Each setup uses an isolated profile directory
+  • The server is for local/personal use
 
 
 MANUAL SETUP (if you prefer)
@@ -614,6 +671,13 @@ Step 1: Install Dependencies
 ------------------------------------------------------------
     python -m pip install -r requirements.txt
 
+This installs:
+  • fastapi - Web framework
+  • uvicorn - ASGI server
+  • pydantic - Data validation
+  • gemini-webapi - Gemini API client
+  • requests - HTTP library
+
 
 Step 2: Start the Server
 ------------------------------------------------------------
@@ -621,12 +685,23 @@ Step 2: Start the Server
 
 The server will be available at: http://localhost:7777
 
+You'll see:
+  [INFO] Token ID: a1b2c3d4
+  [INFO] This unique ID identifies which tokens are being used
+  [OK] Gemini client initialized successfully
+  [OK] Active Token ID: a1b2c3d4
+  [INFO] Starting standalone Gemini API server on port 7777
+
 
 Step 3: Test the API
 ------------------------------------------------------------
+Using cURL:
+
     curl http://localhost:7777/v1/chat/completions \\
       -H "Content-Type: application/json" \\
       -d "{\\"model\\": \\"gemini-3-flash\\", \\"messages\\": [{\\"role\\": \\"user\\", \\"content\\": \\"Hello!\\"}]}"
+
+Using Python (see USAGE EXAMPLES section below)
 
 
 TROUBLESHOOTING
@@ -634,62 +709,113 @@ TROUBLESHOOTING
 
 "Authentication Failed"
 ------------------------------------------------------------
-  • Your tokens may be invalid or expired
-  • Get new tokens from Google Gemini
-  • Make sure you copied the full PSID and PSIDTS values
-  • Create a new setup with the updated tokens
+Problem: Your tokens are invalid or expired
+
+Solutions:
+  • Get new tokens from Google Gemini (gemini.google.com)
+  • Make sure you copied the FULL PSID value (very long string)
+  • Make sure you copied the FULL PSIDTS value (very long string)
+  • Create a new setup from Spike app with updated tokens
+  • Check Token ID to verify which tokens are being used
+
+How to get tokens:
+  1. Go to gemini.google.com and log in
+  2. Open browser DevTools (F12)
+  3. Go to Application → Cookies
+  4. Copy __Secure-1PSID value (PSID)
+  5. Copy __Secure-1PSIDTS value (PSIDTS)
 
 
 "Port already in use"
 ------------------------------------------------------------
-  • Another server is using port 7777
-  • Stop the other server or change the port in gemini_server.py (last line)
+Problem: Another server is using port 7777
+
+Solutions:
+  • Stop the other server first
+  • Or change the port in gemini_server.py (last line):
+    uvicorn.run(app, host="0.0.0.0", port=7777)  ← Change 7777
 
 
 "Module not found"
 ------------------------------------------------------------
+Problem: Python dependencies not installed
+
+Solutions:
   • Run: python -m pip install -r requirements.txt
   • Make sure you're using Python 3.8 or higher
+  • Check: python --version
 
 
 "Server timeout"
 ------------------------------------------------------------
+Problem: Server took too long to start (>15 seconds)
+
+Solutions:
   • Check setup_debug.log for detailed error information
   • Make sure you have internet connection
   • Verify your firewall isn't blocking Python
+  • Try running manually: python gemini_server.py
+
+
+"Token ID not showing"
+------------------------------------------------------------
+Problem: Token ID not displayed in output
+
+Solutions:
+  • Make sure you're using the latest version of Spike app
+  • Create a NEW setup (old setups don't have Token ID feature)
+  • Check gemini_server.py contains TOKEN_ID variable (line 33)
 
 
 SWITCHING TOKENS
 ================================================================================
 
-To use different tokens:
-  1. Create a new setup from the Spike app with the new tokens
-  2. Or manually edit gemini_server.py (lines 14-15)
-  3. Restart the server
+Method 1: Create New Setup (Recommended)
+------------------------------------------------------------
+  1. Open Spike app → Local Setup tab
+  2. Enter your NEW tokens
+  3. Choose a NEW folder
+  4. Click "Create Setup"
+  5. Run python setup.py in the new folder
+  6. Verify Token ID is different from old setup
 
+Method 2: Manual Edit
+------------------------------------------------------------
+  1. Stop the server (Ctrl+C)
+  2. Open gemini_server.py in a text editor
+  3. Update PSID and PSIDTS values (lines 26-27)
+  4. Save the file
+  5. Run python setup.py again
+  6. Verify Token ID changed (confirms new tokens are used)
 
-SECURITY NOTES
-================================================================================
-
-  • Your tokens are stored in gemini_server.py
-  • Keep this file secure and don't share it publicly
-  • Each setup uses an isolated profile directory
-  • The server is for local/personal use
+Verification:
+------------------------------------------------------------
+  • Different tokens should show DIFFERENT Token IDs
+  • Same tokens should show SAME Token ID
+  • If Token ID doesn't change, tokens might be the same
 
 
 AVAILABLE MODELS
 ================================================================================
 
-  • gemini-3-flash       - Fastest, general use
-  • gemini-2.0-flash     - Balanced speed/quality
-  • gemini-3.1-flash     - Enhanced performance
-  • gemini-3.1-pro       - Best quality, complex tasks
+  • gemini-3-flash       - Fastest, general use (default)
+  • gemini-3-flash-plus  - Enhanced flash model
+  • gemini-3-pro         - Best quality, complex tasks
+  • gemini-3.1-flash     - Alias for gemini-3-flash
+  • gemini-3.1-pro       - Alias for gemini-3-pro
+  • gemini-2.0-flash     - Alias for gemini-3-flash
+  • gemini-2.0-flash-exp - Alias for gemini-3-flash
+
+Model Mapping:
+------------------------------------------------------------
+The server automatically maps model names to internal Gemini models.
+You can use any of the names above in your API requests.
 
 
 USAGE EXAMPLES
 ================================================================================
 
-Python:
+Python Example:
 ------------------------------------------------------------
     import requests
 
@@ -697,21 +823,26 @@ Python:
         'http://localhost:7777/v1/chat/completions',
         json={
             "model": "gemini-3-flash",
-            "messages": [{"role": "user", "content": "Hello!"}]
+            "messages": [
+                {"role": "user", "content": "Explain quantum computing"}
+            ]
         }
     )
     
-    print(response.json()['choices'][0]['message']['content'])
+    result = response.json()
+    print(result['choices'][0]['message']['content'])
 
 
-JavaScript:
+JavaScript/Node.js Example:
 ------------------------------------------------------------
     const response = await fetch('http://localhost:7777/v1/chat/completions', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         model: 'gemini-3-flash',
-        messages: [{role: 'user', content: 'Hello!'}]
+        messages: [
+          {role: 'user', content: 'Explain quantum computing'}
+        ]
       })
     });
     
@@ -719,17 +850,185 @@ JavaScript:
     console.log(data.choices[0].message.content);
 
 
-cURL:
+cURL Example:
 ------------------------------------------------------------
     curl http://localhost:7777/v1/chat/completions \\
       -H "Content-Type: application/json" \\
-      -d '{"model": "gemini-3-flash", "messages": [{"role": "user", "content": "Hello!"}]}'
+      -d '{
+        "model": "gemini-3-flash",
+        "messages": [
+          {"role": "user", "content": "Explain quantum computing"}
+        ]
+      }'
+
+
+OpenAI Library Example (Python):
+------------------------------------------------------------
+    from openai import OpenAI
+
+    client = OpenAI(
+        base_url="http://localhost:7777/v1",
+        api_key="not-needed"  # API key not required
+    )
+
+    response = client.chat.completions.create(
+        model="gemini-3-flash",
+        messages=[
+            {"role": "user", "content": "Explain quantum computing"}
+        ]
+    )
+    
+    print(response.choices[0].message.content)
+
+
+API Response Format:
+------------------------------------------------------------
+    {
+      "id": "gemini-1",
+      "object": "chat.completion",
+      "choices": [{
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "Response text here..."
+        },
+        "finish_reason": "stop"
+      }],
+      "model": "gemini-3-flash",
+      "usage": {
+        "prompt_tokens": 10,
+        "completion_tokens": 50,
+        "total_tokens": 60
+      }
+    }
+
+
+DEPLOYMENT
+================================================================================
+
+This server can be deployed to any platform that supports Python:
+
+Local Network:
+------------------------------------------------------------
+  • Change host in gemini_server.py: host="0.0.0.0"
+  • Access from other devices: http://YOUR_IP:7777
+
+Cloud Platforms:
+------------------------------------------------------------
+  • Heroku: Add Procfile with "web: python gemini_server.py"
+  • Railway: Deploy directly from folder
+  • Render: Use Python runtime
+  • DigitalOcean: Deploy on App Platform
+  • AWS/GCP/Azure: Use container or VM
+
+Docker:
+------------------------------------------------------------
+  Create Dockerfile:
+    FROM python:3.11-slim
+    WORKDIR /app
+    COPY requirements.txt .
+    RUN pip install -r requirements.txt
+    COPY gemini_server.py .
+    EXPOSE 7777
+    CMD ["python", "gemini_server.py"]
+
+  Build and run:
+    docker build -t gemini-api .
+    docker run -p 7777:7777 gemini-api
+
+
+FILES IN THIS SETUP
+================================================================================
+
+gemini_server.py
+------------------------------------------------------------
+  • Main API server (FastAPI application)
+  • Contains your tokens (PSID, PSIDTS)
+  • Contains Token ID for verification
+  • Handles /v1/chat/completions endpoint
+  • Handles /v1/models endpoint
+  • Runs on port 7777
+
+requirements.txt
+------------------------------------------------------------
+  • Python dependencies list
+  • Used by setup.py to install packages
+  • Contains: fastapi, uvicorn, pydantic, gemini-webapi, requests
+
+setup.py
+------------------------------------------------------------
+  • One-command installer and launcher
+  • Installs dependencies automatically
+  • Starts server and tests it
+  • Shows clean output with error handling
+  • Saves debug log on errors
+
+README.txt (this file)
+------------------------------------------------------------
+  • Complete documentation
+  • Quick start guide
+  • Troubleshooting tips
+  • Usage examples
+  • Deployment instructions
+
+
+TECHNICAL DETAILS
+================================================================================
+
+Profile Isolation:
+------------------------------------------------------------
+Each setup uses a unique profile directory to avoid cache contamination:
+  Location: C:\\Users\\USERNAME\\AppData\\Local\\Temp\\gemini-local-XXXXX
+  Purpose: Stores browser profile and cached credentials
+  Benefit: Multiple setups don't interfere with each other
+
+Token ID Generation:
+------------------------------------------------------------
+  Algorithm: MD5 hash of (PSID + PSIDTS)
+  Format: First 8 characters of hex digest
+  Example: "a1b2c3d4"
+  Purpose: Verify which tokens are being used
+
+API Compatibility:
+------------------------------------------------------------
+  • OpenAI-compatible format
+  • Works with OpenAI Python library
+  • Works with any OpenAI-compatible client
+  • Standard /v1/chat/completions endpoint
+
+Error Handling:
+------------------------------------------------------------
+  • Clean output by default
+  • Detailed errors only when needed
+  • Full debug log saved to setup_debug.log
+  • Specific error messages (e.g., "Authentication Failed")
+
+
+SUPPORT
+================================================================================
+
+For issues and questions:
+  • Check this README for troubleshooting tips
+  • Check setup_debug.log for detailed error information
+  • Create a new setup from Spike app if files are corrupted
+  • Verify Token ID to confirm which tokens are being used
+
+Common Issues:
+  • Authentication Failed → Get new tokens from gemini.google.com
+  • Port in use → Stop other server or change port
+  • Module not found → Run: python -m pip install -r requirements.txt
+  • Server timeout → Check internet connection and firewall
 
 
 ================================================================================
                               END OF README
 ================================================================================
+
+Generated by: Spike App - Local Setup Feature
+Version: 1.0.0
+Documentation: Complete and up-to-date
 `;
+}
 }
 
 module.exports = { registerLocalSetupHandlers };
