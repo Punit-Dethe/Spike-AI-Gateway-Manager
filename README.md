@@ -91,6 +91,87 @@ curl http://localhost:8000/v1/chat/completions \
 
 ---
 
+## Local Setup Option
+
+Want to run a standalone Gemini API server without the full Spike app? Use the **Local Setup** feature to create a portable, deployable Gemini API server.
+
+### What You Get
+
+- **Standalone server** - No connection to Spike app, runs independently
+- **Port 7777** - Separate from main Spike services
+- **4 files** - Everything needed to run anywhere
+- **Token verification** - Unique Token ID confirms which tokens are active
+- **One command** - `python setup.py` installs and starts everything
+
+### How to Create
+
+1. Open Spike → **Local Setup** tab
+2. Enter your Gemini tokens (PSID and PSIDTS)
+3. Choose a folder for your setup
+4. Click **Create Setup**
+
+### What Gets Created
+
+```
+your-folder/
+├── gemini_server.py    # API server with your tokens
+├── requirements.txt    # Python dependencies
+├── setup.py           # One-command installer
+└── README.txt         # Complete documentation
+```
+
+### How to Use
+
+```bash
+cd your-folder
+python setup.py
+```
+
+That's it! The server:
+- Installs dependencies automatically
+- Starts on http://localhost:7777
+- Tests itself with a sample request
+- Shows Token ID for verification
+- Displays clean output with error details only when needed
+
+### API Usage
+
+Same OpenAI-compatible format:
+
+```python
+import requests
+
+response = requests.post('http://localhost:7777/v1/chat/completions', json={
+    "model": "gemini-3-flash",
+    "messages": [{"role": "user", "content": "Hello"}]
+})
+
+print(response.json()['choices'][0]['message']['content'])
+```
+
+### Token Verification
+
+Each setup shows a unique **Token ID** (8-character hash) to verify which tokens are active:
+
+```
+✓ Server started
+  Token ID: a1b2c3d4
+```
+
+Different tokens = Different Token ID. This confirms new tokens are being used, not cached ones.
+
+### Deployment
+
+The setup folder is portable and can be deployed to:
+- **Local network** - Access from other devices
+- **Cloud platforms** - Heroku, Railway, Render, DigitalOcean
+- **Containers** - Docker, Kubernetes
+- **VPS** - Any server with Python 3.8+
+
+Check the generated `README.txt` for deployment instructions and troubleshooting.
+
+---
+
 ## API Reference
 
 ### Endpoint
