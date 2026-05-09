@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import ServiceCard from './components/ServiceCard';
@@ -9,6 +9,7 @@ import ApiExamples from './components/ApiExamples';
 import ChatInterface from './components/ChatInterface';
 import LogsViewer from './components/LogsViewer';
 import TitleBar from './components/TitleBar';
+import LocalSetupWizard from './components/LocalSetupWizard';
 
 interface ServiceStatus {
   [key: string]: 'stopped' | 'starting' | 'running' | 'stopping' | 'error';
@@ -29,6 +30,7 @@ function App() {
   const [chatStarted, setChatStarted] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState('gemini');
   const [selectedModel, setSelectedModel] = useState('gemini-3-flash');
+  const [showLocalSetup, setShowLocalSetup] = useState(false);
 
   const handleNewChat = () => {
     setChatMessages([]);
@@ -110,6 +112,27 @@ function App() {
 
                 {/* API Examples */}
                 <ApiExamples />
+
+                {/* Local Setup Card */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                  className="mt-6 bg-sand-100 rounded-2xl p-8"
+                >
+                  <h3 className="text-gray-900 text-xl font-sans font-semibold mb-2">
+                    Local Project Setup
+                  </h3>
+                  <p className="text-gray-700 text-base mb-6">
+                    Set up Gemini API in your own project folder - perfect for local development or deploying to hosting platforms
+                  </p>
+                  <button
+                    onClick={() => setShowLocalSetup(true)}
+                    className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-2xl font-medium transition-colors"
+                  >
+                    Set Up Locally
+                  </button>
+                </motion.div>
               </motion.div>
             )}
 
@@ -159,6 +182,13 @@ function App() {
           </main>
         </div>
       </div>
+
+      {/* Local Setup Wizard Modal */}
+      <AnimatePresence>
+        {showLocalSetup && (
+          <LocalSetupWizard onClose={() => setShowLocalSetup(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

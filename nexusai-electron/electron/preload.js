@@ -24,6 +24,12 @@ contextBridge.exposeInMainWorld('electron', {
   windowMaximize: () => ipcRenderer.invoke('window-maximize'),
   windowClose: () => ipcRenderer.invoke('window-close'),
   
+  // Local setup
+  selectFolder: () => ipcRenderer.invoke('select-folder'),
+  createLocalGeminiSetup: (config) => ipcRenderer.invoke('create-local-gemini-setup', config),
+  openFolder: (folderPath) => ipcRenderer.invoke('open-folder', folderPath),
+  openTerminal: (folderPath) => ipcRenderer.invoke('open-terminal', folderPath),
+  
   // Event listeners
   onServiceStatus: (callback) => {
     ipcRenderer.on('service-status', (event, data) => callback(data));

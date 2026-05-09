@@ -24,6 +24,10 @@ export interface ElectronAPI {
   windowMinimize: () => Promise<void>;
   windowMaximize: () => Promise<void>;
   windowClose: () => Promise<void>;
+  selectFolder: () => Promise<{ success: boolean; path?: string; canceled?: boolean; error?: string }>;
+  createLocalGeminiSetup: (config: { projectPath: string; psid: string; psidts: string }) => Promise<{ success: boolean; setupPath?: string; error?: string }>;
+  openFolder?: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
+  openTerminal?: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {

@@ -4,6 +4,9 @@ const { spawn, exec } = require('child_process');
 const net = require('net');
 const fs = require('fs');
 
+// Import local setup module
+const { registerLocalSetupHandlers } = require('./modules/localSetup');
+
 let mainWindow;
 let tokenWindow;
 let tray;
@@ -852,6 +855,40 @@ ipcMain.handle('check-gemini-tokens', async () => {
   }
 });
 
+// Local Setup IPC Handlers
+ipcMain.handle('select-folder', async () => {
+  try {
+    const { dialog } = require('electron');
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory'],
+      title: 'Select Project Folder'
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, canceled: true };
+    }
+
+    return { success: true, path: result.filePaths[0] };
+  } catch (error) {
+    logError('Error selecting folder', 'SYSTEM', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('open-folder', async (event, folderPath) => {
+  try {
+    shell.openPath(folderPath);
+    logSuccess('Opened folder in explorer', 'SYSTEM');
+    logDetail('Path', folderPath);
+    return { success: true };
+  } catch (error) {
+    logError('Error opening folder', 'SYSTEM', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Local setup handlers are now in modules/localSetup.js
+
 ipcMain.handle('open-token-window', async () => {
   try {
     // If window already exists, focus it
@@ -970,6 +1007,9 @@ ipcMain.handle('window-close', () => {
     mainWindow.hide(); // Hide to tray instead of closing
   }
 });
+
+// Register local setup handlers from module
+registerLocalSetupHandlers(logSuccess, logDetail, logError);
 
 // App lifecycle
 app.whenReady().then(() => {

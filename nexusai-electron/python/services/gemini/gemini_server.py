@@ -56,8 +56,6 @@ async def startup():
         await client.init(timeout=30)
         print("[OK] Gemini client ready!")
         print(f"[INFO] Default model: {DEFAULT_MODEL}")
-        print(f"[INFO] PSID: {PSID[:15]}...")
-        print(f"[INFO] PSIDTS: {PSIDTS[:15]}...")
     except Exception as e:
         print(f"[ERROR] Failed to initialize Gemini client: {e}")
         print("[INFO] Please check your tokens and try again.")
