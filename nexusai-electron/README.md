@@ -33,6 +33,31 @@ A premium desktop application for managing AI service backends with a unified AP
 
 📖 **Full guide**: See [USER_GUIDE.md](USER_GUIDE.md)
 
+### Local Setup Option
+
+Want to run a standalone Gemini API server without the full app? Use the **Local Setup** feature:
+
+1. Open Spike app → **Local Setup** tab
+2. Enter your Gemini tokens (PSID and PSIDTS)
+3. Choose a folder for your setup
+4. Click **Create Setup**
+5. Open terminal in that folder and run: `python setup.py`
+
+**Benefits:**
+- ✅ Completely standalone - no connection to main app
+- ✅ Runs on port 7777 (separate from main app)
+- ✅ Easy to deploy to any hosting platform
+- ✅ Token verification with unique Token ID
+- ✅ Clean, minimal output with detailed error reporting
+
+The setup creates 4 files:
+- `gemini_server.py` - The API server
+- `requirements.txt` - Python dependencies
+- `setup.py` - One-command installer
+- `README.txt` - Complete documentation
+
+📖 **More details**: Check the README.txt generated in your setup folder
+
 ### For Developers
 
 #### Prerequisites
