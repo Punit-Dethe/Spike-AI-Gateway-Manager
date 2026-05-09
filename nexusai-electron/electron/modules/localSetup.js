@@ -1029,6 +1029,5 @@ Version: 1.0.0
 Documentation: Complete and up-to-date
 `;
 }
-}
 
 module.exports = { registerLocalSetupHandlers };
