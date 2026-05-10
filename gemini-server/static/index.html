@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spike Lite - OpenAI Gateway</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" type="image/png" href="/static/logo.png">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <img src="/static/logo-trans.png" alt="Spike Lite Logo" class="logo">
+            <span class="brand-name">Spike Lite</span>
+        </div>
+        <div class="nav-right">
+            <div class="status-pill">
+                <div class="status-indicator" id="server-indicator"></div>
+                <span id="server-status">Server Running</span>
+            </div>
+            <div class="status-pill">
+                <div class="status-indicator" id="tokens-indicator"></div>
+                <span id="tokens-status">Tokens Not Configured</span>
+            </div>
+            <div class="status-pill">
+                <div class="status-indicator" id="client-indicator"></div>
+                <span id="client-status">Client Not Ready</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <button class="sidebar-btn active" data-section="endpoint">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    </svg>
+                    <span>API Endpoint</span>
+                </button>
+                <button class="sidebar-btn" data-section="tokens">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span>Token Settings</span>
+                </button>
+                <button class="sidebar-btn" data-section="chat">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>Chat Test</span>
+                </button>
+                <button class="sidebar-btn" data-section="guide">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    <span>Guide</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="content-area">
+            <!-- API Endpoint Section -->
+            <section id="endpoint-section" class="content-section active">
+                <div class="section-header">
+                    <h1>API Endpoint</h1>
+                    <p class="section-subtitle">OpenAI-compatible gateway for Gemini</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Base URL</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="endpoint-display">
+                            <code id="endpoint-url">http://localhost:6969/v1</code>
+                            <button id="copy-endpoint" class="btn-icon" title="Copy to clipboard">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Available Models</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="models-grid">
+                            <div class="model-card">
+                                <div class="model-name">gemini-2.0-flash</div>
+                                <div class="model-desc">Latest & fastest</div>
+                            </div>
+                            <div class="model-card">
+                                <div class="model-name">gemini-3.1-flash</div>
+                                <div class="model-desc">Balanced performance</div>
+                            </div>
+                            <div class="model-card">
+                                <div class="model-name">gemini-3.1-pro</div>
+                                <div class="model-desc">Most capable</div>
+                            </div>
+                            <div class="model-card">
+                                <div class="model-name">gemini-3-flash</div>
+                                <div class="model-desc">Legacy support</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Usage Example</h3>
+                    </div>
+                    <div class="card-body">
+                        <pre class="code-block"><code>from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:6969/v1",
+    api_key="dummy"
+)
+
+response = client.chat.completions.create(
+    model="gemini-2.0-flash",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+
+print(response.choices[0].message.content)</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Token Settings Section -->
+            <section id="tokens-section" class="content-section">
+                <div class="section-header">
+                    <h1>Token Configuration</h1>
+                    <p class="section-subtitle">Configure your Gemini authentication tokens</p>
+                </div>
+
+                <!-- Token Management Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Token Management</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="psid">__Secure-1PSID</label>
+                            <div class="input-with-toggle">
+                                <input type="password" id="psid" placeholder="Enter your PSID token" class="input-field">
+                                <button class="btn-toggle" data-target="psid" title="Show/Hide">
+                                    <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                    <svg class="eye-off-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="psidts">__Secure-1PSIDTS</label>
+                            <div class="input-with-toggle">
+                                <input type="password" id="psidts" placeholder="Enter your PSIDTS token" class="input-field">
+                                <button class="btn-toggle" data-target="psidts" title="Show/Hide">
+                                    <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                    <svg class="eye-off-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="button-row">
+                            <button id="save-tokens" class="btn btn-primary btn-flex">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg>
+                                Save Tokens
+                            </button>
+                            <button id="clear-tokens" class="btn btn-danger btn-flex">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                                Clear Tokens
+                            </button>
+                        </div>
+                        
+                        <div id="token-message" class="message"></div>
+                    </div>
+                </div>
+
+                <!-- Client Control Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Client Control</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="client-status-display">
+                            <div class="client-status-info">
+                                <div class="status-icon" id="client-status-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                </div>
+                                <div class="status-text">
+                                    <div class="status-title" id="client-status-title">Client Not Initialized</div>
+                                    <div class="status-desc" id="client-status-desc">Initialize the client to start using the API</div>
+                                </div>
+                            </div>
+                            
+                            <div class="button-row">
+                                <button id="init-client" class="btn btn-accent btn-flex">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                    </svg>
+                                    Initialize Client
+                                </button>
+                                <button id="stop-client" class="btn btn-secondary btn-flex" disabled>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="6" y="6" width="12" height="12"></rect>
+                                    </svg>
+                                    Stop Client
+                                </button>
+                            </div>
+                            
+                            <div id="client-message" class="message"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chat Test Section -->
+            <section id="chat-section" class="content-section">
+                <div class="section-header">
+                    <h1>Chat Test</h1>
+                    <p class="section-subtitle">Test your API connection with a live chat</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="test-model">Model</label>
+                            <select id="test-model" class="select-field">
+                                <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                                <option value="gemini-3.1-flash">gemini-3.1-flash</option>
+                                <option value="gemini-3.1-pro">gemini-3.1-pro</option>
+                                <option value="gemini-3-flash">gemini-3-flash</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="test-prompt">Your Message</label>
+                            <textarea id="test-prompt" rows="4" placeholder="Type your message here..." class="textarea-field">Say 'Hello from Spike!' and nothing else.</textarea>
+                        </div>
+                        <button id="test-request" class="btn btn-primary btn-large">Send Message</button>
+                    </div>
+                </div>
+
+                <div class="card" id="response-card" style="display: none;">
+                    <div class="card-header">
+                        <h3>Response</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="test-response" class="response-display"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Guide Section -->
+            <section id="guide-section" class="content-section">
+                <div class="section-header">
+                    <h1>Setup Guide</h1>
+                    <p class="section-subtitle">How to get started with Spike</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Getting Your Tokens</h3>
+                    </div>
+                    <div class="card-body">
+                        <ol class="guide-steps">
+                            <li>
+                                <strong>Open Gemini</strong>
+                                <p>Navigate to <a href="https://gemini.google.com" target="_blank">gemini.google.com</a> in Chrome or Edge</p>
+                            </li>
+                            <li>
+                                <strong>Sign In</strong>
+                                <p>Log in with your Google account</p>
+                            </li>
+                            <li>
+                                <strong>Open DevTools</strong>
+                                <p>Press <code>F12</code> or right-click and select "Inspect"</p>
+                            </li>
+                            <li>
+                                <strong>Navigate to Cookies</strong>
+                                <p>Go to: <code>Application</code> → <code>Cookies</code> → <code>https://gemini.google.com</code></p>
+                            </li>
+                            <li>
+                                <strong>Copy Tokens</strong>
+                                <p>Find and copy these two cookies:</p>
+                                <ul>
+                                    <li><code>__Secure-1PSID</code></li>
+                                    <li><code>__Secure-1PSIDTS</code></li>
+                                </ul>
+                            </li>
+                            <li>
+                                <strong>Configure Spike</strong>
+                                <p>Go to "Token Settings" tab, paste your tokens, and click "Save Tokens"</p>
+                            </li>
+                            <li>
+                                <strong>Initialize</strong>
+                                <p>Click "Initialize Client" and wait for confirmation</p>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Troubleshooting</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="troubleshooting">
+                            <div class="trouble-item">
+                                <h4>Authentication Failed</h4>
+                                <p>Get fresh tokens from gemini.google.com. Tokens expire after ~30 days.</p>
+                            </div>
+                            <div class="trouble-item">
+                                <h4>Client Not Initializing</h4>
+                                <p>Verify tokens are correct and you're signed in to Gemini in your browser.</p>
+                            </div>
+                            <div class="trouble-item">
+                                <h4>400 Bad Request</h4>
+                                <p>Make sure to initialize the client before sending requests.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

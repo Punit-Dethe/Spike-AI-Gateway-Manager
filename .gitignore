@@ -112,6 +112,7 @@ desktop.ini
 **/token.txt
 **/error_token.txt
 **/tokens.enc
+**/tokens.json
 
 # Cache directories
 **/pow_config_cache/
@@ -122,6 +123,13 @@ python-embed/
 
 # User data
 %APPDATA%/spike/
+
+# PyInstaller spec files (auto-generated)
+*.spec
+
+# Spike Lite specific
+gemini-server/spike_lite.log
+gemini-server/tokens.json
 
 # ============================================
 # Development files
@@ -145,6 +153,11 @@ coverage/
 # ============================================
 docs/_build/
 docs/.doctrees/
+
+# ============================================
+# Spike Rust (separate repository)
+# ============================================
+spike-rust/
 
 # ============================================
 # Miscellaneous
