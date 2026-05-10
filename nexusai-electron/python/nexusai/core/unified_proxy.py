@@ -1,215 +1,134 @@
-"""Unified API proxy that routes requests to backend services"""
+"""
+Unified API Proxy - Routes requests to Gemini or ChatGPT backends
+Simple, efficient passthrough proxy with model-based routing
+"""
 
-import asyncio
 import httpx
-from fastapi import FastAPI, Request, Response
-from fastapi.responses import JSONResponse, StreamingResponse
-from typing import Optional
 import uvicorn
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse, StreamingResponse
+
+app = FastAPI(title="NexusAI Unified Proxy")
+
+# Backend service URLs
+GEMINI_URL = "http://localhost:6969"
+CHAT2API_URL = "http://localhost:5005"
 
 
-class UnifiedProxy:
-    """HTTP proxy that routes requests to appropriate AI backend"""
+def route_to_backend(model: str) -> str:
+    """Route request to appropriate backend based on model name"""
+    model_lower = model.lower()
     
-    def __init__(self, gemini_url: str = "http://localhost:6969", chat2api_url: str = "http://localhost:5005"):
-        """
-        Initialize UnifiedProxy with backend URLs
-        
-        Args:
-            gemini_url: URL for Gemini Bridge service
-            chat2api_url: URL for Chat2API service
-        """
-        self.gemini_url = gemini_url
-        self.chat2api_url = chat2api_url
-        self.app: Optional[FastAPI] = None
-        self.server: Optional[uvicorn.Server] = None
-        self.server_task: Optional[asyncio.Task] = None
-        
-    def create_app(self) -> FastAPI:
-        """
-        Create FastAPI application with routes
-        
-        Returns:
-            Configured FastAPI app
-        """
-        app = FastAPI(title="NexusAI Unified Proxy")
-        
-        @app.post("/v1/chat/completions")
-        async def chat_completions(request: Request):
-            return await self._handle_chat_completions(request)
-        
-        @app.get("/v1/models")
-        async def list_models():
-            return await self._handle_list_models()
-        
-        @app.get("/health")
-        async def health():
-            return {"status": "healthy"}
-        
-        return app
+    # ChatGPT models → Chat2API
+    if model_lower.startswith(("gpt-", "o1", "o3")):
+        return CHAT2API_URL
     
-    def route_request(self, model: str) -> str:
-        """
-        Determine backend URL based on model name
+    # Gemini models → Gemini Bridge
+    return GEMINI_URL
+
+
+@app.post("/v1/chat/completions")
+async def chat_completions(request: Request):
+    """Forward chat requests to appropriate backend"""
+    try:
+        # Get raw body and parse for routing
+        body = await request.body()
         
-        Args:
-            model: Model name from request
-            
-        Returns:
-            Backend service URL
-            
-        Raises:
-            ValueError: If model is unknown
-        """
-        model_lower = model.lower()
-        
-        if model_lower.startswith(("gpt-", "o1", "o3")):
-            return self.chat2api_url
-        elif model_lower.startswith("gemini"):
-            return self.gemini_url
-        else:
-            raise ValueError(f"Unknown model: {model}")
-    
-    async def _handle_chat_completions(self, request: Request):
-        """Handle POST /v1/chat/completions"""
+        import json
         try:
-            body = await request.json()
-            model = body.get("model", "gemini-3-flash")
-            stream = body.get("stream", False)
-            
-            backend_url = self.route_request(model)
-            target_url = f"{backend_url}/v1/chat/completions"
-            
-            if stream:
-                return await self._forward_streaming_request(target_url, body, request.headers)
-            else:
-                return await self._forward_request(target_url, body, request.headers)
-                
-        except ValueError as e:
-            return JSONResponse(
-                status_code=400,
-                content={"error": {"message": str(e), "type": "invalid_request_error"}}
-            )
-        except httpx.ConnectError:
-            return JSONResponse(
-                status_code=503,
-                content={"error": {"message": "Backend service unavailable", "type": "service_unavailable"}}
-            )
-        except Exception as e:
-            return JSONResponse(
-                status_code=500,
-                content={"error": {"message": str(e), "type": "internal_error"}}
-            )
-    
-    async def _handle_list_models(self):
-        """Handle GET /v1/models - aggregate from all backends"""
-        models = []
-        
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                try:
-                    response = await client.get(f"{self.gemini_url}/v1/models")
-                    if response.status_code == 200:
-                        data = response.json()
-                        if "data" in data:
-                            models.extend(data["data"])
-                except:
-                    pass
-                
-                try:
-                    response = await client.get(f"{self.chat2api_url}/v1/models")
-                    if response.status_code == 200:
-                        data = response.json()
-                        if "data" in data:
-                            models.extend(data["data"])
-                except:
-                    pass
+            body_json = json.loads(body)
+            model = body_json.get("model", "gemini-3-flash")
+            stream = body_json.get("stream", False)
         except:
-            pass
+            model = "gemini-3-flash"
+            stream = False
         
-        if not models:
-            models = [
-                {"id": "gemini-3-flash", "object": "model", "owned_by": "google"},
-                {"id": "gemini-2.0-flash", "object": "model", "owned_by": "google"},
-            ]
+        # Route to backend
+        backend_url = route_to_backend(model)
+        target_url = f"{backend_url}/v1/chat/completions"
         
-        return JSONResponse({"object": "list", "data": models})
+        # Forward headers (remove host)
+        headers = dict(request.headers)
+        headers.pop("host", None)
+        
+        # Handle streaming vs non-streaming
+        if stream:
+            async def generate():
+                async with httpx.AsyncClient(timeout=120.0) as client:
+                    async with client.stream("POST", target_url, content=body, headers=headers) as response:
+                        async for chunk in response.aiter_bytes():
+                            yield chunk
+            
+            return StreamingResponse(generate(), media_type="text/event-stream")
+        else:
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                response = await client.post(target_url, content=body, headers=headers)
+                
+                return JSONResponse(
+                    status_code=response.status_code,
+                    content=response.json() if response.headers.get("content-type", "").startswith("application/json") else {"error": response.text}
+                )
     
-    async def _forward_request(self, target_url: str, body: dict, headers: dict):
-        """Forward non-streaming request to backend"""
-        # Extract Authorization header if present
-        forward_headers = {"Content-Type": "application/json"}
-        if "authorization" in headers or "Authorization" in headers:
-            auth_header = headers.get("authorization") or headers.get("Authorization")
-            forward_headers["Authorization"] = auth_header
-        
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                target_url,
-                json=body,
-                headers=forward_headers
-            )
-            return JSONResponse(
-                status_code=response.status_code,
-                content=response.json()
-            )
-    
-    async def _forward_streaming_request(self, target_url: str, body: dict, headers: dict):
-        """Forward streaming request to backend"""
-        # Extract Authorization header if present
-        forward_headers = {"Content-Type": "application/json"}
-        if "authorization" in headers or "Authorization" in headers:
-            auth_header = headers.get("authorization") or headers.get("Authorization")
-            forward_headers["Authorization"] = auth_header
-        
-        async def generate():
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                async with client.stream(
-                    "POST",
-                    target_url,
-                    json=body,
-                    headers=forward_headers
-                ) as response:
-                    async for chunk in response.aiter_bytes():
-                        yield chunk
-        
-        return StreamingResponse(
-            generate(),
-            media_type="text/event-stream"
+    except httpx.ConnectError:
+        return JSONResponse(
+            status_code=503,
+            content={"error": {"message": "Backend service unavailable", "type": "service_unavailable"}}
         )
-    
-    async def start_async(self, host: str = "0.0.0.0", port: int = 8000):
-        """Start the proxy server asynchronously"""
-        self.app = self.create_app()
-        config = uvicorn.Config(
-            self.app,
-            host=host,
-            port=port,
-            log_level="info",
-            access_log=False
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": {"message": f"Proxy error: {str(e)}", "type": "internal_error"}}
         )
-        self.server = uvicorn.Server(config)
-        await self.server.serve()
+
+
+@app.get("/v1/models")
+async def list_models():
+    """Aggregate models from all backends"""
+    models = []
     
-    def start(self, host: str = "0.0.0.0", port: int = 8000):
-        """
-        Start the proxy server in background
-        
-        Args:
-            host: Host to bind to
-            port: Port to listen on
-        """
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        self.server_task = loop.create_task(self.start_async(host, port))
+    # Try Gemini
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{GEMINI_URL}/v1/models")
+            if response.status_code == 200:
+                models.extend(response.json().get("data", []))
+    except:
+        pass
     
-    async def stop_async(self):
-        """Stop the proxy server asynchronously"""
-        if self.server:
-            self.server.should_exit = True
-            await asyncio.sleep(0.1)
+    # Try Chat2API
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{CHAT2API_URL}/v1/models")
+            if response.status_code == 200:
+                models.extend(response.json().get("data", []))
+    except:
+        pass
     
-    def stop(self):
-        """Stop the proxy server"""
-        if self.server_task:
-            asyncio.run(self.stop_async())
+    # Fallback if backends are down
+    if not models:
+        models = [
+            {"id": "gemini-3-flash", "object": "model", "owned_by": "google"},
+            {"id": "gemini-2.0-flash", "object": "model", "owned_by": "google"},
+            {"id": "gpt-4o", "object": "model", "owned_by": "openai"},
+            {"id": "gpt-4o-mini", "object": "model", "owned_by": "openai"},
+        ]
+    
+    return {"object": "list", "data": models}
+
+
+@app.get("/health")
+async def health():
+    """Health check"""
+    return {"status": "healthy", "service": "unified-proxy"}
+
+
+if __name__ == "__main__":
+    print("=" * 60)
+    print("NexusAI Unified Proxy")
+    print("=" * 60)
+    print(f"Gemini Bridge:  {GEMINI_URL}")
+    print(f"Chat2API:       {CHAT2API_URL}")
+    print(f"Proxy:          http://0.0.0.0:8000")
+    print("=" * 60)
+    
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info", access_log=False)

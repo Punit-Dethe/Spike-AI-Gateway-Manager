@@ -60,16 +60,20 @@ const ChatInterface = ({
       id: 'chatgpt',
       name: 'ChatGPT',
       models: [
-        { id: 'gpt-4o', name: 'GPT-4o' },
-        { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+        // Fast & Efficient (Best for most tasks)
+        { id: 'gpt-4o-mini', name: 'GPT-4o Mini (Fast & Cheap)' },
+        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo (Fastest)' },
+        
+        // Most Capable
+        { id: 'gpt-4o', name: 'GPT-4o (Latest)' },
         { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
         { id: 'gpt-4', name: 'GPT-4' },
-        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
-        { id: 'o1', name: 'O1' },
-        { id: 'o1-mini', name: 'O1 Mini' },
-        { id: 'o1-pro', name: 'O1 Pro' },
-        { id: 'o3-mini', name: 'O3 Mini' },
-        { id: 'o3-mini-high', name: 'O3 Mini High' },
+        
+        // Reasoning Models (Slower, thinks deeply)
+        { id: 'o1', name: 'O1 (Reasoning)' },
+        { id: 'o1-mini', name: 'O1 Mini (Reasoning)' },
+        { id: 'o1-preview', name: 'O1 Preview' },
+        { id: 'o3-mini', name: 'O3 Mini (Latest Reasoning)' },
       ],
     },
   ];
@@ -122,10 +126,6 @@ const ChatInterface = ({
     setIsLoading(true);
 
     try {
-      console.log('Sending request to:', `${proxyUrl}/v1/chat/completions`);
-      console.log('Model:', selectedModel);
-      console.log('Messages:', [...messages.map(m => ({ role: m.role, content: m.content })), { role: 'user', content: userMessage.content }]);
-
       const response = await fetch(`${proxyUrl}/v1/chat/completions`, {
         method: 'POST',
         headers: {
@@ -141,17 +141,12 @@ const ChatInterface = ({
         }),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('Response data:', data);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
