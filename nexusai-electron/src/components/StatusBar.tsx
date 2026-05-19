@@ -43,7 +43,7 @@ const StatusBar = ({ serviceStatus }: StatusBarProps) => {
                 >
                   <div className="w-1.5 h-1.5 rounded-full bg-gray-900" />
                   <span className="text-sm font-medium text-gray-900">
-                    {serviceName === 'gemini' ? 'Gemini Bridge' : serviceName}
+                    {serviceName === 'gemini' ? 'Gemini' : serviceName}
                   </span>
                 </motion.div>
               ))}

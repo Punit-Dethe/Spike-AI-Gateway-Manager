@@ -107,6 +107,16 @@ function updateStatusIndicators(status) {
     
     // Update client control section
     updateClientControlUI(status.client_initialized);
+    
+    // Update current mode display in Chat Test
+    const modeDisplay = document.getElementById('current-mode-display');
+    if (modeDisplay) {
+        modeDisplay.textContent = status.temporary_mode 
+            ? 'Temporary (no history)' 
+            : 'History (saves chats)';
+        modeDisplay.style.fontWeight = '600';
+        modeDisplay.style.color = status.temporary_mode ? '#7d6b52' : '#5a8a5a';
+    }
 }
 
 function updateClientControlUI(isInitialized) {
@@ -232,16 +242,20 @@ clearTokensBtn.addEventListener('click', async () => {
 
 // Event Handlers - Client Control
 initClientBtn.addEventListener('click', async () => {
+    const temporaryMode = document.getElementById('server-temporary-mode').checked;
+    
     try {
         initClientBtn.disabled = true;
         initClientBtn.textContent = 'Initializing...';
         
-        const response = await fetch(`${API_BASE}/api/initialize`, {
+        const response = await fetch(`${API_BASE}/api/initialize?temporary_mode=${temporaryMode}`, {
             method: 'POST'
         });
         
         if (response.ok) {
-            showMessage(clientMessage, 'Client initialized successfully! You can now use the API.', 'success');
+            const data = await response.json();
+            const modeText = temporaryMode ? 'TEMPORARY (no history)' : 'HISTORY (saves chats)';
+            showMessage(clientMessage, `Client initialized in ${modeText} mode!`, 'success');
             await fetchStatus();
         } else {
             const error = await response.json();
@@ -343,7 +357,11 @@ testRequestBtn.addEventListener('click', async () => {
         if (response.ok) {
             const data = await response.json();
             const content = data.choices[0].message.content;
-            testResponse.textContent = `${content}\n\n---\nModel: ${data.model}\nTokens: ${data.usage.total_tokens}`;
+            const temporaryMode = data.spike_metadata?.temporary_mode;
+            const historyNote = temporaryMode 
+                ? '\n\n💡 This chat was NOT saved to your Gemini history (server-wide temporary mode)'
+                : '\n\n📝 This chat was saved to your Gemini history (server-wide history mode)';
+            testResponse.textContent = `${content}\n\n---\nModel: ${data.model}\nTokens: ${data.usage.total_tokens}${historyNote}`;
         } else {
             const error = await response.json();
             testResponse.textContent = `Error: ${error.detail}`;

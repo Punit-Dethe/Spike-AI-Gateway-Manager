@@ -4,18 +4,31 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import ServiceCard from './components/ServiceCard';
 import EndpointCard from './components/EndpointCard';
-import StatusBar from './components/StatusBar';
+import ServicesOverview from './components/ServicesOverview';
 import ApiExamples from './components/ApiExamples';
 import ChatInterface from './components/ChatInterface';
 import LogsViewer from './components/LogsViewer';
 import TitleBar from './components/TitleBar';
 import LocalSetupWizard from './components/LocalSetupWizard';
+import TunnelCard from './components/TunnelCard';
+import StandaloneSetupCard from './components/StandaloneSetupCard';
+import GatewayPanel from './components/GatewayPanel';
+import type { TunnelStatus, CloudflaredInstallProgress } from './electron';
 
 interface ServiceStatus {
   [key: string]: 'stopped' | 'starting' | 'running' | 'stopping' | 'error';
 }
 
 type Tab = 'chat' | 'dashboard' | 'services' | 'logs';
+
+const INITIAL_TUNNEL_STATUS: TunnelStatus = {
+  status: 'stopped',
+  url: null,
+  error: null,
+  installed: false,
+  installing: false,
+  port: 8000,
+};
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('chat');
@@ -30,11 +43,45 @@ function App() {
   const [chatStarted, setChatStarted] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState('gemini');
   const [selectedModel, setSelectedModel] = useState('gemini-3-flash');
+  const [selectedEndpoint, setSelectedEndpoint] = useState<'local' | 'public' | 'gemini' | 'chatgpt'>('local');
   const [showLocalSetup, setShowLocalSetup] = useState(false);
+
+  // Tunnel state, lifted so both the overview and the tunnel card stay in sync.
+  const [tunnelStatus, setTunnelStatus] = useState<TunnelStatus>(INITIAL_TUNNEL_STATUS);
+  const [installProgress, setInstallProgress] =
+    useState<CloudflaredInstallProgress | null>(null);
 
   const handleNewChat = () => {
     setChatMessages([]);
     setChatStarted(false);
+  };
+
+  // --- Service control helpers (used by ServicesOverview) ---
+  const handleStartService = (name: string) => {
+    window.electron.startService(name);
+  };
+  const handleStopService = (name: string) => {
+    window.electron.stopService(name);
+  };
+
+  // --- Tunnel control helpers ---
+  const handleTunnelInstall = async () => {
+    setInstallProgress({ phase: 'starting', percent: 0 });
+    const result = await window.electron.tunnelInstall();
+    if (!result.success) {
+      setInstallProgress({
+        phase: 'error',
+        error: result.message || 'Install failed',
+      });
+    }
+  };
+  const handleTunnelStart = async () => {
+    await window.electron.tunnelSaveConfig({ enabled: true });
+    await window.electron.tunnelStart(tunnelStatus.port || 8000);
+  };
+  const handleTunnelStop = async () => {
+    await window.electron.tunnelSaveConfig({ enabled: false });
+    await window.electron.tunnelStop();
   };
 
   useEffect(() => {
@@ -51,8 +98,30 @@ function App() {
       }));
     });
 
+    // Tunnel: initial status + push updates
+    window.electron.tunnelGetStatus().then((s) => setTunnelStatus(s));
+    window.electron.onTunnelStatus((data) => {
+      setTunnelStatus(data);
+      // Once the binary is installed and not installing, clear lingering progress
+      if (!data.installing) {
+        setInstallProgress((prev) =>
+          prev && prev.phase !== 'complete' && prev.phase !== 'error' ? null : prev,
+        );
+      }
+    });
+
+    // Tunnel install progress
+    window.electron.onCloudflaredInstallProgress((data) => {
+      setInstallProgress(data);
+      if (data.phase === 'complete') {
+        setTimeout(() => setInstallProgress(null), 600);
+      }
+    });
+
     return () => {
       window.electron.removeServiceStatusListener();
+      window.electron.removeTunnelStatusListener();
+      window.electron.removeCloudflaredInstallProgressListener();
     };
   }, []);
 
@@ -94,6 +163,9 @@ function App() {
                   setSelectedProvider={setSelectedProvider}
                   selectedModel={selectedModel}
                   setSelectedModel={setSelectedModel}
+                  selectedEndpoint={selectedEndpoint}
+                  setSelectedEndpoint={setSelectedEndpoint}
+                  tunnelUrl={tunnelStatus.status === 'running' ? tunnelStatus.url : null}
                 />
               </motion.div>
             )}
@@ -104,35 +176,37 @@ function App() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                {/* Status Bar - Scrolls with content */}
-                <StatusBar serviceStatus={serviceStatus} />
+                {/* System flow diagram */}
+                <ServicesOverview
+                  serviceStatus={serviceStatus}
+                  tunnelStatus={tunnelStatus}
+                  onStartService={handleStartService}
+                  onStopService={handleStopService}
+                  onTunnelInstall={handleTunnelInstall}
+                  onTunnelStart={handleTunnelStart}
+                  onTunnelStop={handleTunnelStop}
+                />
 
-                {/* API Endpoint Card */}
-                <EndpointCard />
+                {/* Local API endpoint */}
+                <EndpointCard proxyStatus={serviceStatus.proxy} />
 
-                {/* API Examples */}
+                {/* Public Cloudflare tunnel */}
+                <TunnelCard
+                  tunnelStatus={tunnelStatus}
+                  installProgress={installProgress}
+                  onInstall={handleTunnelInstall}
+                  onStart={handleTunnelStart}
+                  onStop={handleTunnelStop}
+                />
+
+                {/* API examples */}
                 <ApiExamples />
 
-                {/* Local Setup Card */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.1 }}
-                  className="mt-6 bg-sand-100 rounded-2xl p-8"
-                >
-                  <h3 className="text-gray-900 text-xl font-sans font-semibold mb-2">
-                    Local Project Setup
-                  </h3>
-                  <p className="text-gray-700 text-base mb-6">
-                    Set up Gemini API in your own project folder - perfect for local development or deploying to hosting platforms
-                  </p>
-                  <button
-                    onClick={() => setShowLocalSetup(true)}
-                    className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-2xl font-medium transition-colors"
-                  >
-                    Set Up Locally
-                  </button>
-                </motion.div>
+                {/* Standalone project setup - spotlight card */}
+                <StandaloneSetupCard onOpen={() => setShowLocalSetup(true)} />
+
+                {/* Bottom breathing room so the card doesn't touch the viewport edge */}
+                <div className="h-12" aria-hidden="true" />
               </motion.div>
             )}
 
@@ -142,31 +216,40 @@ function App() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                {/* Primary Service - Unified Proxy (No Card Background) */}
-                <ServiceCard
-                  name="Unified Proxy"
-                  serviceName="proxy"
-                  port={8000}
-                  status={serviceStatus.proxy}
-                  description="Routes to appropriate AI backend"
-                  primary={true}
+                {/* Gateway — proxy + public tunnel together (infrastructure) */}
+                <GatewayPanel
+                  proxyStatus={serviceStatus.proxy}
+                  tunnelStatus={tunnelStatus}
+                  installProgress={installProgress}
+                  onStartProxy={() => handleStartService('proxy')}
+                  onStopProxy={() => handleStopService('proxy')}
+                  onKillProxy={() => window.electron.killService('proxy')}
+                  onTunnelInstall={handleTunnelInstall}
+                  onTunnelStart={handleTunnelStart}
+                  onTunnelStop={handleTunnelStop}
                 />
 
                 {/* Divider */}
                 <div className="my-8 border-t border-sand-300" />
 
-                {/* Secondary Services */}
+                {/* Bridges — kept exactly as before, unchanged */}
+                <div className="mb-3 px-1">
+                  <h3 className="text-sm font-semibold text-gray-900">Bridges</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Per-provider adapters that need your session tokens
+                  </p>
+                </div>
                 <div className="space-y-4">
                   <ServiceCard
-                    name="Gemini Bridge"
+                    name="Gemini"
                     serviceName="gemini"
                     port={6969}
                     status={serviceStatus.gemini}
                     description="Google Gemini API bridge with browser session authentication"
                   />
-                  
+
                   <ServiceCard
-                    name="Chat2API"
+                    name="ChatGPT"
                     serviceName="chat2api"
                     port={5005}
                     status={serviceStatus.chat2api}

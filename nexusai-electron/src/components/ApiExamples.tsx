@@ -86,15 +86,13 @@ print(response.choices[0].message.content)`;
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="bg-sand-100 rounded-2xl p-8"
+      className="bg-sand-100 rounded-2xl p-6"
     >
       <div>
-        <h3 className="text-gray-900 text-xl font-sans font-semibold mb-2">
-          API Usage Examples
-        </h3>
-        <p className="text-gray-700 text-base mb-6">
-          Copy and paste these examples to start using Spike in your applications
-        </p>
+        <div className="flex items-baseline justify-between mb-4">
+          <h3 className="text-sm font-semibold text-gray-900">Examples</h3>
+          <span className="text-xs text-gray-500">Same endpoint, any model</span>
+        </div>
 
         {/* Code block with controls */}
         <div className="bg-sand-200 rounded-2xl overflow-hidden border border-sand-300">
@@ -167,17 +165,6 @@ print(response.choices[0].message.content)`;
               <code>{generateCode()}</code>
             </pre>
           </div>
-        </div>
-
-        {/* Additional info */}
-        <div className="mt-4 p-4 bg-sand-200 rounded-2xl border border-sand-300">
-          <p className="text-sm text-gray-700">
-            <span className="font-semibold">Note:</span> All requests go through the{' '}
-            <span className="font-mono bg-sand-300 px-2 py-0.5 rounded">
-              Unified Proxy (Port 8000)
-            </span>{' '}
-            which automatically routes to the correct AI provider based on the model name. No need to specify the provider!
-          </p>
         </div>
       </div>
     </motion.div>

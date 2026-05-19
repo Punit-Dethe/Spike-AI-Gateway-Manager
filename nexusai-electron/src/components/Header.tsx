@@ -40,12 +40,12 @@ const Header = ({ activeTab }: HeaderProps) => {
   }
 
   return (
-    <header className="bg-sand-50 px-12 pt-10 pb-6">
+    <header className="bg-sand-50 px-12 pt-10 pb-4">
       <div>
-        <h1 className="text-5xl font-serif font-semibold text-gray-900 mb-2">
+        <h1 className="text-4xl font-serif font-semibold text-gray-900">
           {content.title}
         </h1>
-        <p className="text-gray-700 text-base">
+        <p className="text-gray-600 text-sm mt-1">
           {content.subtitle}
         </p>
       </div>

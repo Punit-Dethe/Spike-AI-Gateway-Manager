@@ -13,6 +13,8 @@ interface Message {
   timestamp: Date;
 }
 
+export type ChatEndpointId = 'local' | 'public' | 'gemini' | 'chatgpt';
+
 interface ChatInterfaceProps {
   proxyUrl?: string;
   messages: Message[];
@@ -23,6 +25,9 @@ interface ChatInterfaceProps {
   setSelectedProvider: React.Dispatch<React.SetStateAction<string>>;
   selectedModel: string;
   setSelectedModel: React.Dispatch<React.SetStateAction<string>>;
+  selectedEndpoint: ChatEndpointId;
+  setSelectedEndpoint: React.Dispatch<React.SetStateAction<ChatEndpointId>>;
+  tunnelUrl: string | null;
 }
 
 const ChatInterface = ({ 
@@ -34,16 +39,23 @@ const ChatInterface = ({
   selectedProvider,
   setSelectedProvider,
   selectedModel,
-  setSelectedModel
+  setSelectedModel,
+  selectedEndpoint,
+  setSelectedEndpoint,
+  tunnelUrl,
 }: ChatInterfaceProps) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
+  const [endpointDropdownOpen, setEndpointDropdownOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const providerDropdownRef = useRef<HTMLDivElement>(null);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
+  const endpointDropdownRef = useRef<HTMLDivElement>(null);
+  const inlineModelDropdownRef = useRef<HTMLDivElement>(null);
+  const [inlineModelDropdownOpen, setInlineModelDropdownOpen] = useState(false);
 
   const providers = [
     {
@@ -79,14 +91,75 @@ const ChatInterface = ({
   ];
 
   const currentProvider = providers.find(p => p.id === selectedProvider);
-  const currentModels = currentProvider?.models || [];
+
+  // --- Endpoint options & resolution -------------------------------------
+
+  // Direct endpoints are locked to a single provider's model set. Local /
+  // Public proxies serve everything.
+  const endpointOptions: Array<{
+    id: ChatEndpointId;
+    name: string;
+    forProvider?: 'gemini' | 'chatgpt';
+    available: boolean;
+  }> = [
+    { id: 'local', name: 'Local Proxy', available: true },
+    { id: 'public', name: 'Public Proxy', available: !!tunnelUrl },
+    { id: 'gemini', name: 'Gemini Direct', forProvider: 'gemini', available: true },
+    { id: 'chatgpt', name: 'ChatGPT Direct', forProvider: 'chatgpt', available: true },
+  ];
+
+  const currentEndpointOption =
+    endpointOptions.find((e) => e.id === selectedEndpoint) || endpointOptions[0];
+
+  // Models visible in the picker depend on the endpoint. Direct endpoints
+  // expose only their own provider's models; proxies expose everything.
+  const allModels = providers.flatMap(p => p.models);
+  const currentModels = (() => {
+    if (currentEndpointOption.forProvider === 'gemini') {
+      return providers.find(p => p.id === 'gemini')?.models || [];
+    }
+    if (currentEndpointOption.forProvider === 'chatgpt') {
+      return providers.find(p => p.id === 'chatgpt')?.models || [];
+    }
+    return allModels;
+  })();
+
+  // Resolve the URL to actually fetch from
+  const resolveBaseUrl = (id: ChatEndpointId): string => {
+    switch (id) {
+      case 'public':
+        return tunnelUrl || proxyUrl;
+      case 'gemini':
+        return 'http://localhost:6969';
+      case 'chatgpt':
+        return 'http://localhost:5005';
+      case 'local':
+      default:
+        return proxyUrl;
+    }
+  };
+
+  // Keep the (hidden-once-chat-started) provider in sync with the endpoint
+  // so first-time pickers and the existing provider dropdown still work.
+  useEffect(() => {
+    if (currentEndpointOption.forProvider && currentEndpointOption.forProvider !== selectedProvider) {
+      setSelectedProvider(currentEndpointOption.forProvider);
+    }
+    if (selectedEndpoint === 'public' && !tunnelUrl) {
+      setSelectedEndpoint('local');
+    }
+  }, [selectedEndpoint, tunnelUrl, currentEndpointOption.forProvider, selectedProvider, setSelectedEndpoint, setSelectedProvider]);
 
   useEffect(() => {
-    // Update selected model when provider changes
+    // If the current model isn't valid for the active endpoint's model list,
+    // bump it to the first available one.
     if (currentModels.length > 0 && !currentModels.find(m => m.id === selectedModel)) {
       setSelectedModel(currentModels[0].id);
     }
-  }, [selectedProvider, currentModels, selectedModel]);
+  }, [currentModels, selectedModel, setSelectedModel]);
+
+  // Suppress unused-currentProvider warning when filtered by endpoint
+  void currentProvider;
 
   useEffect(() => {
     scrollToBottom();
@@ -100,6 +173,12 @@ const ChatInterface = ({
       }
       if (modelDropdownRef.current && !modelDropdownRef.current.contains(event.target as Node)) {
         setModelDropdownOpen(false);
+      }
+      if (endpointDropdownRef.current && !endpointDropdownRef.current.contains(event.target as Node)) {
+        setEndpointDropdownOpen(false);
+      }
+      if (inlineModelDropdownRef.current && !inlineModelDropdownRef.current.contains(event.target as Node)) {
+        setInlineModelDropdownOpen(false);
       }
     };
 
@@ -126,27 +205,27 @@ const ChatInterface = ({
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${proxyUrl}/v1/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer nexusai-default-auth-key',
-        },
-        body: JSON.stringify({
+      const baseUrl = resolveBaseUrl(selectedEndpoint);
+      const result = await window.electron.chatComplete({
+        url: `${baseUrl}/v1/chat/completions`,
+        authHeader: 'Bearer nexusai-default-auth-key',
+        body: {
           model: selectedModel,
           messages: [
-            ...messages.map(m => ({ role: m.role, content: m.content })),
+            ...messages.map((m) => ({ role: m.role, content: m.content })),
             { role: 'user', content: userMessage.content },
           ],
-        }),
+        },
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+      if (!result.success) {
+        const detail = result.body
+          ? `${result.error || 'Request failed'}: ${result.body.slice(0, 300)}`
+          : result.error || 'Request failed';
+        throw new Error(detail);
       }
 
-      const data = await response.json();
+      const data = JSON.parse(result.body || '{}');
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -155,7 +234,7 @@ const ChatInterface = ({
         timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage: Message = {
@@ -290,11 +369,12 @@ const ChatInterface = ({
                     onClick={() => {
                       setProviderDropdownOpen(!providerDropdownOpen);
                       setModelDropdownOpen(false);
+                      setEndpointDropdownOpen(false);
                     }}
-                    className="w-full bg-sand-50 text-gray-900 text-lg font-medium px-5 py-4 rounded-xl border-2 border-transparent hover:border-sand-300 focus:border-sand-400 focus:outline-none transition-all cursor-pointer flex items-center justify-between"
+                    className="w-full bg-sand-50 text-gray-900 text-base font-medium h-[58px] px-5 rounded-xl border-2 border-transparent hover:border-sand-300 focus:border-sand-400 focus:outline-none transition-all cursor-pointer flex items-center justify-between gap-2 min-w-0"
                   >
-                    <span>{providers.find(p => p.id === selectedProvider)?.name}</span>
-                    <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${providerDropdownOpen ? 'rotate-180' : ''}`} />
+                    <span className="truncate">{providers.find(p => p.id === selectedProvider)?.name}</span>
+                    <ChevronDown className={`w-5 h-5 shrink-0 transition-transform duration-200 ${providerDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   <AnimatePresence>
@@ -313,7 +393,7 @@ const ChatInterface = ({
                               setSelectedProvider(provider.id);
                               setProviderDropdownOpen(false);
                             }}
-                            className={`w-full text-left px-5 py-4 text-lg font-medium transition-colors ${
+                            className={`w-full text-left px-5 py-3 text-base font-medium transition-colors ${
                               selectedProvider === provider.id
                                 ? 'bg-sand-200 text-gray-900'
                                 : 'text-gray-700 hover:bg-sand-100 hover:text-gray-900'
@@ -339,11 +419,12 @@ const ChatInterface = ({
                     onClick={() => {
                       setModelDropdownOpen(!modelDropdownOpen);
                       setProviderDropdownOpen(false);
+                      setEndpointDropdownOpen(false);
                     }}
-                    className="w-full bg-sand-50 text-gray-900 text-lg font-medium px-5 py-4 rounded-xl border-2 border-transparent hover:border-sand-300 focus:border-sand-400 focus:outline-none transition-all cursor-pointer flex items-center justify-between"
+                    className="w-full bg-sand-50 text-gray-900 text-base font-medium h-[58px] px-5 rounded-xl border-2 border-transparent hover:border-sand-300 focus:border-sand-400 focus:outline-none transition-all cursor-pointer flex items-center justify-between gap-2 min-w-0"
                   >
-                    <span>{currentModels.find(m => m.id === selectedModel)?.name}</span>
-                    <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${modelDropdownOpen ? 'rotate-180' : ''}`} />
+                    <span className="truncate">{currentModels.find(m => m.id === selectedModel)?.name}</span>
+                    <ChevronDown className={`w-5 h-5 shrink-0 transition-transform duration-200 ${modelDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   <AnimatePresence>
@@ -362,7 +443,7 @@ const ChatInterface = ({
                               setSelectedModel(model.id);
                               setModelDropdownOpen(false);
                             }}
-                            className={`w-full text-left px-5 py-4 text-lg font-medium transition-colors ${
+                            className={`w-full text-left px-5 py-3 text-base font-medium transition-colors ${
                               selectedModel === model.id
                                 ? 'bg-sand-200 text-gray-900'
                                 : 'text-gray-700 hover:bg-sand-100 hover:text-gray-900'
@@ -371,6 +452,71 @@ const ChatInterface = ({
                             {model.name}
                           </button>
                         ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+
+                {/* Endpoint Dropdown */}
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.05 }}
+                  ref={endpointDropdownRef}
+                  className="flex-1 relative"
+                >
+                  <button
+                    onClick={() => {
+                      setEndpointDropdownOpen(!endpointDropdownOpen);
+                      setProviderDropdownOpen(false);
+                      setModelDropdownOpen(false);
+                    }}
+                    className="w-full bg-sand-50 text-gray-900 text-base font-medium h-[58px] px-5 rounded-xl border-2 border-transparent hover:border-sand-300 focus:border-sand-400 focus:outline-none transition-all cursor-pointer flex items-center justify-between gap-2 min-w-0"
+                  >
+                    <span className="truncate">{currentEndpointOption.name}</span>
+                    <ChevronDown className={`w-5 h-5 shrink-0 transition-transform duration-200 ${endpointDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  <AnimatePresence>
+                    {endpointDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute bottom-full left-0 right-0 mb-2 bg-sand-50 rounded-xl border-2 border-sand-300 shadow-lg overflow-hidden z-10"
+                      >
+                        {endpointOptions.map((opt) => {
+                          const lockedOut = false; // endpoint now drives provider, not the other way around
+                          const disabled = !opt.available || lockedOut;
+                          const reason = !opt.available ? 'Tunnel is offline' : '';
+                          return (
+                            <button
+                              key={opt.id}
+                              disabled={disabled}
+                              onClick={() => {
+                                if (disabled) return;
+                                setSelectedEndpoint(opt.id);
+                                setEndpointDropdownOpen(false);
+                              }}
+                              title={reason || undefined}
+                              className={`w-full text-left px-5 py-3 text-base font-medium transition-colors ${
+                                selectedEndpoint === opt.id
+                                  ? 'bg-sand-200 text-gray-900'
+                                  : disabled
+                                    ? 'text-gray-400 cursor-not-allowed'
+                                    : 'text-gray-700 hover:bg-sand-100 hover:text-gray-900'
+                              }`}
+                            >
+                              {opt.name}
+                              {disabled && reason && (
+                                <span className="ml-2 text-xs font-normal text-gray-400">
+                                  ({reason})
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -393,8 +539,139 @@ const ChatInterface = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="bg-sand-100 rounded-2xl p-1 flex gap-2 items-end"
             >
+              {/* Endpoint indicator strip (lets users switch endpoint mid-chat) */}
+              <div className="flex items-center justify-between gap-3 mb-2 px-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span>Hitting</span>
+                  <div ref={endpointDropdownRef} className="relative">
+                    <button
+                      onClick={() => setEndpointDropdownOpen(!endpointDropdownOpen)}
+                      className="flex items-center gap-1.5 text-gray-700 hover:text-gray-900 transition-colors"
+                    >
+                      <span className="font-medium text-gray-900">{currentEndpointOption.name}</span>
+                      <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${endpointDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    <AnimatePresence>
+                      {endpointDropdownOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute bottom-full left-0 mb-2 min-w-[280px] bg-sand-50 rounded-xl border-2 border-sand-300 shadow-lg overflow-hidden z-20"
+                        >
+                          {endpointOptions.map((opt) => {
+                            const lockedOut = false;
+                            const disabled = !opt.available || lockedOut;
+                            const reason = !opt.available ? 'Tunnel is offline' : '';
+                            return (
+                              <button
+                                key={opt.id}
+                                disabled={disabled}
+                                onClick={() => {
+                                  if (disabled) return;
+                                  setSelectedEndpoint(opt.id);
+                                  setEndpointDropdownOpen(false);
+                                }}
+                                title={reason || undefined}
+                                className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
+                                  selectedEndpoint === opt.id
+                                    ? 'bg-sand-200 text-gray-900'
+                                    : disabled
+                                      ? 'text-gray-400 cursor-not-allowed'
+                                      : 'text-gray-700 hover:bg-sand-100 hover:text-gray-900'
+                                }`}
+                              >
+                                {opt.name}
+                                {disabled && reason && (
+                                  <span className="ml-2 text-[11px] font-normal text-gray-400">
+                                    ({reason})
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+                <div ref={inlineModelDropdownRef} className="relative">
+                  <button
+                    onClick={() => {
+                      setInlineModelDropdownOpen(!inlineModelDropdownOpen);
+                      setEndpointDropdownOpen(false);
+                    }}
+                    className="flex items-center gap-1 font-medium text-gray-700 hover:text-gray-900 transition-colors truncate"
+                  >
+                    <span className="truncate">{selectedModel}</span>
+                    <ChevronDown className={`w-3 h-3 shrink-0 transition-transform duration-200 ${inlineModelDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  <AnimatePresence>
+                    {inlineModelDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute bottom-full right-0 mb-2 min-w-[260px] max-h-72 overflow-y-auto bg-sand-50 rounded-xl border-2 border-sand-300 shadow-lg z-20"
+                      >
+                        {currentEndpointOption.forProvider ? (
+                          // Single-provider list (Gemini Direct or ChatGPT Direct)
+                          currentModels.map((model) => (
+                            <button
+                              key={model.id}
+                              onClick={() => {
+                                setSelectedModel(model.id);
+                                setInlineModelDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-4 py-2.5 transition-colors ${
+                                selectedModel === model.id
+                                  ? 'bg-sand-200 text-gray-900'
+                                  : 'text-gray-700 hover:bg-sand-100 hover:text-gray-900'
+                              }`}
+                            >
+                              <div className="text-sm font-medium">{model.name}</div>
+                              <div className="text-[11px] mt-0.5 font-mono text-gray-500">{model.id}</div>
+                            </button>
+                          ))
+                        ) : (
+                          // Proxy: group by provider
+                          providers.map((provider) => (
+                            <div key={provider.id}>
+                              <div className="px-4 pt-2.5 pb-1 text-[10px] font-semibold tracking-wide uppercase text-gray-500 bg-sand-100">
+                                {provider.name}
+                              </div>
+                              {provider.models.map((model) => (
+                                <button
+                                  key={model.id}
+                                  onClick={() => {
+                                    setSelectedModel(model.id);
+                                    setInlineModelDropdownOpen(false);
+                                  }}
+                                  className={`w-full text-left px-4 py-2.5 transition-colors ${
+                                    selectedModel === model.id
+                                      ? 'bg-sand-200 text-gray-900'
+                                      : 'text-gray-700 hover:bg-sand-100 hover:text-gray-900'
+                                  }`}
+                                >
+                                  <div className="text-sm font-medium">{model.name}</div>
+                                  <div className="text-[11px] mt-0.5 font-mono text-gray-500">{model.id}</div>
+                                </button>
+                              ))}
+                            </div>
+                          ))
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              <div className="bg-sand-100 rounded-2xl p-1 flex gap-2 items-end">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -417,6 +694,7 @@ const ChatInterface = ({
                   <Send className="w-5 h-5" />
                 )}
               </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

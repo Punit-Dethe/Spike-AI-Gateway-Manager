@@ -1,8 +1,13 @@
 import { motion } from 'framer-motion';
-import { Copy, Check } from 'lucide-react';
 import { useState } from 'react';
 
-const EndpointCard = () => {
+type ServiceRunStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'error';
+
+interface EndpointCardProps {
+  proxyStatus?: ServiceRunStatus;
+}
+
+const EndpointCard = ({ proxyStatus = 'stopped' }: EndpointCardProps) => {
   const [copied, setCopied] = useState(false);
   const endpoint = 'http://localhost:8000/v1';
 
@@ -11,6 +16,33 @@ const EndpointCard = () => {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const isLive = proxyStatus === 'running';
+  const isPending = proxyStatus === 'starting' || proxyStatus === 'stopping';
+
+  const dotClass = isLive
+    ? 'bg-emerald-500'
+    : isPending
+      ? 'bg-amber-500 animate-pulse'
+      : 'bg-gray-400';
+
+  const label = isLive
+    ? 'Live'
+    : proxyStatus === 'starting'
+      ? 'Starting'
+      : proxyStatus === 'stopping'
+        ? 'Stopping'
+        : proxyStatus === 'error'
+          ? 'Error'
+          : 'Offline';
+
+  const labelColor = isLive
+    ? 'text-emerald-700'
+    : isPending
+      ? 'text-amber-700'
+      : proxyStatus === 'error'
+        ? 'text-rose-700'
+        : 'text-gray-600';
 
   return (
     <motion.div
@@ -27,28 +59,22 @@ const EndpointCard = () => {
           <p className="text-gray-700 text-base mb-5">
             Use this endpoint for all AI model requests
           </p>
-          
-          <div className="bg-sand-50 rounded-2xl p-4 mb-5">
-            <code className="text-gray-900 font-mono text-base">
+
+          <div className="bg-sand-50 rounded-2xl p-4 mb-5 flex items-center justify-between gap-4">
+            <code className="text-gray-900 font-mono text-base break-all">
               {endpoint}
             </code>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
+              <span className={`text-xs font-medium ${labelColor}`}>{label}</span>
+            </div>
           </div>
 
           <button
             onClick={handleCopy}
-            className="bg-accent hover:bg-accent-hover active:bg-accent-hover text-white font-medium text-base py-2.5 px-5 rounded-2xl transition-all duration-150 flex items-center gap-2 hover:shadow-sm active:scale-[0.98]"
+            className="bg-accent hover:bg-accent-hover active:bg-accent-hover text-white font-medium text-base py-2.5 px-5 rounded-2xl transition-all duration-150 hover:shadow-sm active:scale-[0.98]"
           >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                Copy Endpoint
-              </>
-            )}
+            {copied ? 'Copied!' : 'Copy Endpoint'}
           </button>
         </div>
       </div>

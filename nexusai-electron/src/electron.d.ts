@@ -1,6 +1,7 @@
 export interface ElectronAPI {
   startService: (serviceName: string) => Promise<{ success: boolean; message: string }>;
   stopService: (serviceName: string) => Promise<{ success: boolean; message: string }>;
+  killService: (serviceName: string) => Promise<{ success: boolean; message: string }>;
   getServiceStatus: (serviceName: string) => Promise<string>;
   getAllStatus: () => Promise<{ [key: string]: string }>;
   onServiceStatus: (callback: (data: any) => void) => void;
@@ -24,10 +25,47 @@ export interface ElectronAPI {
   windowMinimize: () => Promise<void>;
   windowMaximize: () => Promise<void>;
   windowClose: () => Promise<void>;
+  chatComplete: (payload: {
+    url: string;
+    body: unknown;
+    authHeader?: string;
+  }) => Promise<{ success: boolean; status?: number; body?: string; error?: string }>;
   selectFolder: () => Promise<{ success: boolean; path?: string; canceled?: boolean; error?: string }>;
   createLocalGeminiSetup: (config: { projectPath: string; psid: string; psidts: string }) => Promise<{ success: boolean; setupPath?: string; error?: string }>;
   openFolder?: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
   openTerminal?: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Cloudflare tunnel
+  tunnelInstall: () => Promise<{ success: boolean; alreadyInstalled?: boolean; message?: string }>;
+  tunnelUninstall: () => Promise<{ success: boolean; message?: string }>;
+  tunnelStart: (port?: number) => Promise<{ success: boolean; message?: string; url?: string | null }>;
+  tunnelStop: () => Promise<{ success: boolean; message?: string }>;
+  tunnelGetStatus: () => Promise<TunnelStatus>;
+  tunnelSaveConfig: (cfg: { enabled: boolean }) => Promise<{ success: boolean }>;
+  tunnelGetConfig: () => Promise<{ enabled: boolean }>;
+  onTunnelStatus: (callback: (data: TunnelStatus) => void) => void;
+  removeTunnelStatusListener: () => void;
+  onCloudflaredInstallProgress: (callback: (data: CloudflaredInstallProgress) => void) => void;
+  removeCloudflaredInstallProgressListener: () => void;
+}
+
+export type TunnelRunStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'error';
+
+export interface TunnelStatus {
+  status: TunnelRunStatus;
+  url: string | null;
+  error: string | null;
+  installed: boolean;
+  installing: boolean;
+  port: number;
+}
+
+export interface CloudflaredInstallProgress {
+  phase: 'starting' | 'downloading' | 'complete' | 'error';
+  percent?: number;
+  downloaded?: number;
+  total?: number;
+  error?: string;
 }
 
 declare global {

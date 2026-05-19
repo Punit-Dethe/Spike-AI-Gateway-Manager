@@ -118,3 +118,33 @@ html, body, #root {
   margin-top: 1rem;
   margin-bottom: 1rem;
 }
+
+/* Services overview - animated flow lines and node hover */
+@keyframes flow-dash {
+  to { stroke-dashoffset: -22; }
+}
+
+.flow-line {
+  animation: flow-dash 0.9s linear infinite;
+}
+
+.node-clickable .node-rect {
+  transition: fill 150ms ease, transform 150ms ease;
+}
+
+.node-clickable:hover .node-rect {
+  fill: rgb(220, 215, 202);
+}
+
+.node-clickable:active .node-rect {
+  fill: rgb(210, 205, 195);
+}
+
+.node-group:focus {
+  outline: none;
+}
+
+.node-group:focus-visible .node-rect {
+  stroke: #2563eb;
+  stroke-width: 2;
+}

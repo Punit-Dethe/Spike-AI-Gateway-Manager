@@ -46,6 +46,7 @@ client_initialized = False
 # Token storage
 PSID = ""
 PSIDTS = ""
+DEFAULT_TEMPORARY_MODE = True  # Default to temporary mode for privacy
 
 # Token persistence file
 # Use AppData folder when running as exe, otherwise use script directory
@@ -115,6 +116,7 @@ class ChatRequest(BaseModel):
     stream: Optional[bool] = False
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
+    # temporary parameter is ignored - server-wide setting takes precedence
 
 class TokenConfig(BaseModel):
     psid: str
@@ -209,9 +211,9 @@ async def get_tokens():
     }
 
 @app.post("/api/initialize")
-async def initialize_client():
-    """Initialize Gemini client"""
-    global client, client_initialized
+async def initialize_client(temporary_mode: bool = True):
+    """Initialize Gemini client with temporary mode setting"""
+    global client, client_initialized, DEFAULT_TEMPORARY_MODE
     
     if not PSID or not PSIDTS:
         raise HTTPException(status_code=400, detail="Tokens not configured")
@@ -220,19 +222,41 @@ async def initialize_client():
         if client:
             await client.close()
         
-        client = GeminiClient(PSID, PSIDTS)
-        await client.init(timeout=30)
+        # Set the server-wide temporary mode
+        DEFAULT_TEMPORARY_MODE = temporary_mode
+        
+        # Initialize with cookies and enable auto-refresh
+        client = GeminiClient(PSID, PSIDTS, proxy=None)
+        await client.init(timeout=30, auto_close=False, auto_refresh=True)
         client_initialized = True
         
-        return {"status": "success", "message": "Client initialized"}
+        mode_text = "TEMPORARY (no history)" if temporary_mode else "HISTORY (saves chats)"
+        print(f"✓ Client initialized successfully")
+        print(f"✓ Mode: {mode_text}")
+        print(f"✓ Auto-refresh enabled - cookies will stay fresh")
+        
+        return {
+            "status": "success", 
+            "message": f"Client initialized in {mode_text} mode!",
+            "temporary_mode": temporary_mode
+        }
     except Exception as e:
         client_initialized = False
-        raise HTTPException(status_code=500, detail=f"Failed to initialize: {str(e)}")
+        error_msg = str(e)
+        print(f"✗ Failed to initialize client: {error_msg}")
+        
+        # Provide helpful error messages
+        if "timeout" in error_msg.lower():
+            raise HTTPException(status_code=500, detail="Connection timeout. Check your internet connection.")
+        elif "cookie" in error_msg.lower() or "auth" in error_msg.lower():
+            raise HTTPException(status_code=500, detail="Authentication failed. Please get fresh cookies from gemini.google.com")
+        else:
+            raise HTTPException(status_code=500, detail=f"Failed to initialize: {error_msg}")
 
 @app.post("/api/stop")
 async def stop_client():
     """Stop Gemini client"""
-    global client, client_initialized
+    global client, client_initialized, DEFAULT_TEMPORARY_MODE
     
     if client:
         try:
@@ -242,6 +266,8 @@ async def stop_client():
     
     client = None
     client_initialized = False
+    # Reset to default when stopping
+    DEFAULT_TEMPORARY_MODE = True
     
     return {"status": "success", "message": "Client stopped"}
 
@@ -251,7 +277,8 @@ async def get_status():
     return {
         "tokens_configured": bool(PSID and PSIDTS),
         "client_initialized": client_initialized,
-        "ready": client_initialized
+        "ready": client_initialized,
+        "temporary_mode": DEFAULT_TEMPORARY_MODE
     }
 
 @app.post("/v1/chat/completions")
@@ -264,9 +291,10 @@ async def chat_completion(req: ChatRequest):
         if not PSID or not PSIDTS:
             raise HTTPException(status_code=400, detail="Tokens not configured")
         try:
-            client = GeminiClient(PSID, PSIDTS)
-            await client.init(timeout=30)
+            client = GeminiClient(PSID, PSIDTS, proxy=None)
+            await client.init(timeout=30, auto_close=False, auto_refresh=True)
             client_initialized = True
+            print(f"✓ Client auto-initialized for request")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to initialize: {str(e)}")
     
@@ -277,8 +305,15 @@ async def chat_completion(req: ChatRequest):
     internal_model = MODEL_MAP.get(req.model, "gemini-3-flash")
     
     try:
-        # Generate content
-        response = await client.generate_content(prompt, model=internal_model)
+        # Use server-wide temporary mode setting (ignores request parameter)
+        use_temporary = DEFAULT_TEMPORARY_MODE
+        
+        # Generate content with server-wide temporary mode
+        response = await client.generate_content(
+            prompt, 
+            model=internal_model,
+            temporary=use_temporary
+        )
         
         # Return OpenAI format
         return JSONResponse({
@@ -298,6 +333,10 @@ async def chat_completion(req: ChatRequest):
                 "prompt_tokens": len(prompt.split()),
                 "completion_tokens": len(response.text.split()),
                 "total_tokens": len(prompt.split()) + len(response.text.split())
+            },
+            "spike_metadata": {
+                "temporary_mode": use_temporary,
+                "note": "Server-wide setting - cannot be overridden per request"
             }
         })
     except Exception as e:

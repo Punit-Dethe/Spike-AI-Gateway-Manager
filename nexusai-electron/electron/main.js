@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, shell, net: electronNet } = require('electron');
 const path = require('path');
 const { spawn, exec } = require('child_process');
 const net = require('net');
@@ -6,6 +6,8 @@ const fs = require('fs');
 
 // Import local setup module
 const { registerLocalSetupHandlers } = require('./modules/localSetup');
+// Import tunnel module
+const tunnel = require('./modules/tunnel');
 
 let mainWindow;
 let tokenWindow;
@@ -772,6 +774,42 @@ ipcMain.handle('stop-service', async (event, serviceName) => {
   return stopService(serviceName);
 });
 
+ipcMain.handle('kill-service', async (event, serviceName) => {
+  const service = serviceConfig[serviceName];
+  if (!service) {
+    return { success: false, message: 'Service not found' };
+  }
+
+  log(`Force-killing ${service.name}`, 'HEADER', serviceName);
+  logDetail('Port', service.port);
+
+  // Kill the process reference if we have one
+  if (service.process) {
+    try {
+      if (process.platform === 'win32' && service.process.pid) {
+        await new Promise((resolve) => {
+          exec(`taskkill /F /T /PID ${service.process.pid}`, () => resolve());
+        });
+      } else {
+        service.process.kill('SIGKILL');
+      }
+    } catch (e) {
+      // ignore
+    }
+    service.process = null;
+  }
+
+  // Also kill anything on the port
+  const killed = await killProcessOnPort(service.port);
+  if (killed) {
+    logSuccess(`Force-killed process on port ${service.port}`, serviceName);
+  }
+
+  service.status = 'stopped';
+  sendStatusUpdate(serviceName, 'stopped');
+  return { success: true, message: 'Service force-killed' };
+});
+
 ipcMain.handle('get-service-status', async (event, serviceName) => {
   return getServiceStatus(serviceName);
 });
@@ -1011,14 +1049,81 @@ ipcMain.handle('window-close', () => {
 // Register local setup handlers from module
 registerLocalSetupHandlers(logSuccess, logDetail, logError);
 
+// Chat-completion forwarder.
+// Called from the renderer to make a chat-completions request without hitting
+// browser CORS rules. The main process has no same-origin restriction, so this
+// works equally well against localhost, the Cloudflare tunnel, or a bridge
+// running on another port.
+ipcMain.handle('chat-complete', async (_event, { url, body, authHeader }) => {
+  return new Promise((resolve) => {
+    try {
+      const request = electronNet.request({
+        method: 'POST',
+        url,
+        redirect: 'follow',
+      });
+
+      request.setHeader('Content-Type', 'application/json');
+      if (authHeader) {
+        request.setHeader('Authorization', authHeader);
+      }
+
+      const chunks = [];
+      let statusCode = 0;
+
+      request.on('response', (response) => {
+        statusCode = response.statusCode;
+        response.on('data', (chunk) => chunks.push(chunk));
+        response.on('end', () => {
+          const text = Buffer.concat(chunks).toString('utf8');
+          if (statusCode >= 200 && statusCode < 300) {
+            resolve({ success: true, status: statusCode, body: text });
+          } else {
+            resolve({
+              success: false,
+              status: statusCode,
+              body: text,
+              error: `HTTP ${statusCode}`,
+            });
+          }
+        });
+        response.on('error', (err) => {
+          resolve({ success: false, error: err.message || 'Response error' });
+        });
+      });
+
+      request.on('error', (err) => {
+        resolve({ success: false, error: err.message || 'Request error' });
+      });
+
+      request.write(JSON.stringify(body));
+      request.end();
+    } catch (error) {
+      resolve({ success: false, error: error.message || 'Unknown error' });
+    }
+  });
+});
+
+// Register tunnel handlers from module
+tunnel.registerTunnelHandlers(
+  { log, logDetail, logSuccess, logWarning, logError },
+  () => mainWindow
+);
+
 // App lifecycle
 app.whenReady().then(() => {
   createWindow();
   createTray();
+
+  // Auto-start tunnel if user previously enabled it and binary is present
+  tunnel.maybeAutoStart(serviceConfig.proxy.port).catch((err) => {
+    logError('Tunnel auto-start failed', 'TUNNEL', err);
+  });
 });
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    tunnel.stopTunnel().catch(() => {});
     stopAllServices();
     app.quit();
   }
@@ -1032,5 +1137,6 @@ app.on('activate', () => {
 
 app.on('before-quit', () => {
   app.isQuitting = true;
+  tunnel.stopTunnel().catch(() => {});
   stopAllServices();
 });

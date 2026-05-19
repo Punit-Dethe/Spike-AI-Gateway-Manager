@@ -281,7 +281,7 @@ const ServiceCard = ({ name, serviceName, port, status, description, primary = f
                     </div>
                   ) : (
                     <p className="text-xs text-gray-700 ml-4">
-                      Please add your tokens below to use Gemini Bridge
+                      Please add your tokens below to use Gemini
                     </p>
                   )}
                 </div>
@@ -322,7 +322,7 @@ const ServiceCard = ({ name, serviceName, port, status, description, primary = f
 
             {isChat2API && (
               <>
-                <h4 className="text-base font-semibold text-gray-900 mb-3">Configure Chat2API Token</h4>
+                <h4 className="text-base font-semibold text-gray-900 mb-3">Configure ChatGPT Token</h4>
                 
                 <p className="text-sm text-gray-600 mb-4">
                   Follow these two simple steps to add your ChatGPT token:
@@ -363,9 +363,9 @@ const ServiceCard = ({ name, serviceName, port, status, description, primary = f
                         2
                       </div>
                       <div className="flex-1">
-                        <h5 className="text-sm font-semibold text-gray-900 mb-1">Add Token to Chat2API</h5>
+                        <h5 className="text-sm font-semibold text-gray-900 mb-1">Add Token to ChatGPT</h5>
                         <p className="text-sm text-gray-600 mb-2">
-                          Paste your token in the Chat2API token management page
+                          Paste your token in the ChatGPT token management page
                         </p>
                         <button
                           onClick={() => window.electron.openTokenWindow()}
@@ -380,7 +380,7 @@ const ServiceCard = ({ name, serviceName, port, status, description, primary = f
                   <div className="bg-sand-50 rounded-xl p-3 mt-3">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm text-gray-700">
-                        <strong>Note:</strong> After adding your token, restart the Chat2API service for changes to take effect.
+                        <strong>Note:</strong> After adding your token, restart the ChatGPT service for changes to take effect.
                       </p>
                       <button
                         onClick={handleRestart}

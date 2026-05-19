@@ -147,7 +147,66 @@ print(response.choices[0].message.content)</code></pre>
                     <p class="section-subtitle">Configure your Gemini authentication tokens</p>
                 </div>
 
-                <!-- Token Management Card -->
+                <!-- Client Control Card - MOVED UP -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Client Control</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="client-status-display">
+                            <div class="client-status-info">
+                                <div class="status-icon" id="client-status-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                </div>
+                                <div class="status-text">
+                                    <div class="status-title" id="client-status-title">Client Not Initialized</div>
+                                    <div class="status-desc" id="client-status-desc">Initialize the client to start using the API</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Temporary Mode Setting -->
+                            <div class="form-group" style="margin-top: 20px; padding: 16px; background: #f5f2ed; border-radius: 8px; border: 1px solid #d4c5b0;">
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                    <input type="checkbox" id="server-temporary-mode" checked style="width: 18px; height: 18px; cursor: pointer;">
+                                    <label for="server-temporary-mode" style="margin: 0; font-weight: 600; color: #3d3528; cursor: pointer;">
+                                        Temporary Mode (Privacy Mode)
+                                    </label>
+                                </div>
+                                <p style="font-size: 13px; color: #7d6b52; margin: 0 0 0 30px; line-height: 1.5;">
+                                    When enabled, <strong>all chats from any client</strong> won't be saved to your Gemini history. This is a <strong>server-wide setting</strong> that applies to all API requests.
+                                </p>
+                                <div style="margin: 12px 0 0 30px; padding: 8px 12px; background: #fff9f0; border-left: 3px solid #b39f7e; border-radius: 4px;">
+                                    <p style="font-size: 12px; color: #7d6b52; margin: 0; line-height: 1.4;">
+                                        💡 <strong>Recommended:</strong> Keep this enabled for privacy. Your API requests won't clutter your personal Gemini history.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="button-row" style="margin-top: 20px;">
+                                <button id="init-client" class="btn btn-accent btn-flex">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                    </svg>
+                                    Initialize Client
+                                </button>
+                                <button id="stop-client" class="btn btn-secondary btn-flex" disabled>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="6" y="6" width="12" height="12"></rect>
+                                    </svg>
+                                    Stop Client
+                                </button>
+                            </div>
+                            
+                            <div id="client-message" class="message"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Token Management Card - MOVED DOWN -->
                 <div class="card">
                     <div class="card-header">
                         <h3>Token Management</h3>
@@ -207,47 +266,6 @@ print(response.choices[0].message.content)</code></pre>
                         <div id="token-message" class="message"></div>
                     </div>
                 </div>
-
-                <!-- Client Control Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Client Control</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="client-status-display">
-                            <div class="client-status-info">
-                                <div class="status-icon" id="client-status-icon">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                                    </svg>
-                                </div>
-                                <div class="status-text">
-                                    <div class="status-title" id="client-status-title">Client Not Initialized</div>
-                                    <div class="status-desc" id="client-status-desc">Initialize the client to start using the API</div>
-                                </div>
-                            </div>
-                            
-                            <div class="button-row">
-                                <button id="init-client" class="btn btn-accent btn-flex">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                                    </svg>
-                                    Initialize Client
-                                </button>
-                                <button id="stop-client" class="btn btn-secondary btn-flex" disabled>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="6" y="6" width="12" height="12"></rect>
-                                    </svg>
-                                    Stop Client
-                                </button>
-                            </div>
-                            
-                            <div id="client-message" class="message"></div>
-                        </div>
-                    </div>
-                </div>
             </section>
 
             <!-- Chat Test Section -->
@@ -271,6 +289,13 @@ print(response.choices[0].message.content)</code></pre>
                         <div class="form-group">
                             <label for="test-prompt">Your Message</label>
                             <textarea id="test-prompt" rows="4" placeholder="Type your message here..." class="textarea-field">Say 'Hello from Spike!' and nothing else.</textarea>
+                        </div>
+                        <div style="padding: 12px; background: #f5f2ed; border-radius: 6px; border: 1px solid #d4c5b0; margin-bottom: 16px;">
+                            <p style="font-size: 13px; color: #7d6b52; margin: 0; line-height: 1.5;">
+                                💡 <strong>Server-wide mode:</strong> <span id="current-mode-display">Temporary (no history)</span>
+                                <br>
+                                <span style="font-size: 12px;">Change this in Token Settings → Client Control</span>
+                            </p>
                         </div>
                         <button id="test-request" class="btn btn-primary btn-large">Send Message</button>
                     </div>
@@ -301,11 +326,11 @@ print(response.choices[0].message.content)</code></pre>
                         <ol class="guide-steps">
                             <li>
                                 <strong>Open Gemini</strong>
-                                <p>Navigate to <a href="https://gemini.google.com" target="_blank">gemini.google.com</a> in Chrome or Edge</p>
+                                <p>Navigate to <a href="https://gemini.google.com" target="_blank">https://gemini.google.com</a> (MUST be HTTPS, not HTTP)</p>
                             </li>
                             <li>
                                 <strong>Sign In</strong>
-                                <p>Log in with your Google account</p>
+                                <p>Log in with your Google account that has Gemini access</p>
                             </li>
                             <li>
                                 <strong>Open DevTools</strong>
@@ -314,14 +339,16 @@ print(response.choices[0].message.content)</code></pre>
                             <li>
                                 <strong>Navigate to Cookies</strong>
                                 <p>Go to: <code>Application</code> → <code>Cookies</code> → <code>https://gemini.google.com</code></p>
+                                <p style="color: #c44; margin-top: 8px;"><strong>⚠ IMPORTANT:</strong> Make sure you're looking at cookies for <code>https://gemini.google.com</code> (with HTTPS), NOT <code>google.com</code> or any other domain!</p>
                             </li>
                             <li>
                                 <strong>Copy Tokens</strong>
-                                <p>Find and copy these two cookies:</p>
+                                <p>Find and copy the <strong>ENTIRE VALUE</strong> of these two cookies:</p>
                                 <ul>
-                                    <li><code>__Secure-1PSID</code></li>
-                                    <li><code>__Secure-1PSIDTS</code></li>
+                                    <li><code>__Secure-1PSID</code> (starts with "g." and is very long)</li>
+                                    <li><code>__Secure-1PSIDTS</code> (also very long)</li>
                                 </ul>
+                                <p style="color: #c44; margin-top: 8px;"><strong>⚠ CRITICAL:</strong> Copy the COMPLETE value - these tokens are typically 200-500+ characters long. If your token is short, you didn't copy it all!</p>
                             </li>
                             <li>
                                 <strong>Configure Spike</strong>
@@ -329,7 +356,12 @@ print(response.choices[0].message.content)</code></pre>
                             </li>
                             <li>
                                 <strong>Initialize</strong>
-                                <p>Click "Initialize Client" and wait for confirmation</p>
+                                <p>Click "Initialize Client" and wait for confirmation (may take 10-30 seconds)</p>
+                            </li>
+                            <li>
+                                <strong>Verify Authentication</strong>
+                                <p>Test in the "Chat Test" tab. If it works, your chat history should appear in <a href="https://gemini.google.com/app" target="_blank">gemini.google.com/app</a></p>
+                                <p style="color: #c44; margin-top: 8px;"><strong>⚠ If history doesn't show:</strong> Your tokens are wrong or expired. Get fresh tokens!</p>
                             </li>
                         </ol>
                     </div>
@@ -342,16 +374,25 @@ print(response.choices[0].message.content)</code></pre>
                     <div class="card-body">
                         <div class="troubleshooting">
                             <div class="trouble-item">
+                                <h4>🚨 Not Authenticated / Free Version Only</h4>
+                                <p><strong>Symptoms:</strong> Shows "Gemini 3 Flash free version", chat history doesn't appear in gemini.google.com/app</p>
+                                <p><strong>Solution:</strong> Your cookies are WRONG or EXPIRED. Get fresh cookies from <code>https://gemini.google.com</code> (with HTTPS). Make sure you copy the ENTIRE cookie value (200-500+ characters). Cookies expire after ~30 days.</p>
+                            </div>
+                            <div class="trouble-item">
                                 <h4>Authentication Failed</h4>
-                                <p>Get fresh tokens from gemini.google.com. Tokens expire after ~30 days.</p>
+                                <p>Get fresh tokens from gemini.google.com. Make sure you're copying from the correct domain (<code>https://gemini.google.com</code>, not <code>google.com</code>). Tokens expire after ~30 days.</p>
                             </div>
                             <div class="trouble-item">
                                 <h4>Client Not Initializing</h4>
-                                <p>Verify tokens are correct and you're signed in to Gemini in your browser.</p>
+                                <p>Verify tokens are correct and you're signed in to Gemini in your browser. Check that you copied the COMPLETE token value (they're very long!).</p>
                             </div>
                             <div class="trouble-item">
                                 <h4>400 Bad Request</h4>
                                 <p>Make sure to initialize the client before sending requests.</p>
+                            </div>
+                            <div class="trouble-item">
+                                <h4>Cookies Keep Expiring</h4>
+                                <p>Spike Lite has auto-refresh enabled! Once initialized, cookies will automatically refresh in the background. You shouldn't need to update them manually unless you restart the app.</p>
                             </div>
                         </div>
                     </div>
