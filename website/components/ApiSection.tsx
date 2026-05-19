@@ -92,21 +92,14 @@ export default function ApiSection() {
         {/* Left: copy */}
         <div className="md:col-span-5">
           <span className="text-xs font-semibold tracking-wide uppercase text-accent">
-            OpenAI-compatible
+            For developers
           </span>
           <h2 className="mt-2 font-serif text-4xl md:text-5xl font-semibold text-gray-900 leading-tight">
-            One endpoint. Every model.
+            Three lines of code. Any model.
           </h2>
           <p className="mt-4 text-gray-700 text-lg leading-relaxed">
-            Spike routes by model name automatically. Use{' '}
-            <code className="font-mono text-sm bg-sand-200 px-1.5 py-0.5 rounded">
-              gpt-*
-            </code>{' '}
-            for ChatGPT,{' '}
-            <code className="font-mono text-sm bg-sand-200 px-1.5 py-0.5 rounded">
-              gemini*
-            </code>{' '}
-            for Gemini. Same endpoint, no provider parameter.
+            Same endpoint, same JSON shape, every model. Just change the model
+            name to switch providers — Spike picks the right backend for you.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-1.5">
@@ -126,9 +119,9 @@ export default function ApiSection() {
           </div>
 
           <div className="mt-8 text-sm text-gray-600">
-            Also compatible with the{' '}
+            Works with the{' '}
             <span className="font-medium text-gray-900">OpenAI SDK</span>,{' '}
-            LangChain, LlamaIndex, and any OpenAI-format client.
+            LangChain, LlamaIndex, and any OpenAI-format client out of the box.
           </div>
         </div>
 

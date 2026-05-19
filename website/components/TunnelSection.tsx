@@ -11,7 +11,7 @@ const STEPS = [
   },
   {
     label: 'Click Install',
-    detail: 'Downloads ~22 MB',
+    detail: 'Downloads in seconds',
     state: 'install',
   },
   {
@@ -38,8 +38,7 @@ export default function TunnelSection() {
     <section
       id="tunnel"
       className="relative max-w-6xl mx-auto px-6 py-20 md:py-28"
-    >
-      {/* Spotlight panel */}
+    >      {/* Spotlight panel */}
       <div className="relative overflow-hidden rounded-3xl ring-1 ring-inset ring-sand-300/60">
         {/* Layered background */}
         <div className="absolute inset-0 bg-sand-200" />
@@ -63,25 +62,24 @@ export default function TunnelSection() {
               From localhost to the internet, in one click.
             </h2>
             <p className="mt-4 text-gray-700 text-lg leading-relaxed">
-              Spike installs the Cloudflare connector on demand and gives you a
-              public <code className="font-mono text-sm bg-sand-100 px-1.5 py-0.5 rounded">trycloudflare.com</code> URL
-              that forwards to your local Unified Proxy. No account, no DNS,
-              no port forwarding.
+              Click install. Toggle the switch. You&apos;ll have a public HTTPS
+              URL that points back to the AI on your machine.
             </p>
 
-            <ul className="mt-6 space-y-2.5">
-              {[
-                'Installs inside the app — no admin, no PATH changes',
-                'Toggle on/off from the Dashboard or Services tab',
-                'URL persists across app restarts when enabled',
-                'Quick tunnels only — no named tunnels, no credentials',
-              ].map((line) => (
-                <li key={line} className="flex items-start gap-2.5 text-sm text-gray-700">
-                  <span className="mt-1.5 w-1 h-1 rounded-full bg-accent shrink-0" />
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-6 space-y-3">
+              <UseCase
+                title="Hit your local AI from a hosted project"
+                body="Deploy a Vercel or Render app that calls your laptop. Same code, no API key."
+              />
+              <UseCase
+                title="Share access with a teammate"
+                body="Send them a URL. They get the same models you have, while your machine stays in control."
+              />
+              <UseCase
+                title="Test webhook integrations"
+                body="Point Discord, Slack, or any incoming webhook at your AI without deploying anything."
+              />
+            </div>
           </div>
 
           {/* Right: animated terminal/url panel */}
@@ -150,5 +148,31 @@ export default function TunnelSection() {
         </div>
       </div>
     </section>
+  );
+}
+
+function UseCase({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="bg-sand-50/80 rounded-xl p-4 ring-1 ring-inset ring-sand-300/40">
+      <div className="flex items-start gap-3">
+        <svg
+          viewBox="0 0 14 14"
+          width="14"
+          height="14"
+          className="mt-1 shrink-0"
+          fill="none"
+          stroke="#2563EB"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M2.5 7.5 L5.5 10.5 L11.5 4" />
+        </svg>
+        <div>
+          <h4 className="text-sm font-semibold text-gray-900">{title}</h4>
+          <p className="mt-1 text-sm text-gray-600 leading-relaxed">{body}</p>
+        </div>
+      </div>
+    </div>
   );
 }

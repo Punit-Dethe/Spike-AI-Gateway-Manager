@@ -16,9 +16,9 @@ const crimson = Crimson_Text({
 });
 
 export const metadata: Metadata = {
-  title: 'Spike — Turn ChatGPT and Gemini into a real REST API',
+  title: 'Spike — Use ChatGPT and Gemini as a real API',
   description:
-    'Spike converts ChatGPT and Google Gemini into OpenAI-compatible APIs that run locally. Expose them publicly with one click via Cloudflare Tunnel. No API keys, no usage fees.',
+    'Spike turns the AI chat tools you already pay for into an OpenAI-compatible REST API. No new keys, no usage fees, no extra subscriptions. Run it locally or share it publicly with one click.',
   keywords: [
     'spike',
     'ai gateway',
@@ -27,19 +27,20 @@ export const metadata: Metadata = {
     'openai compatible',
     'cloudflare tunnel',
     'local llm',
+    'ai for developers',
   ],
   openGraph: {
-    title: 'Spike — AI Gateway Manager',
+    title: 'Spike — Your ChatGPT and Gemini, now an API',
     description:
-      'Run ChatGPT and Gemini as a local REST API. Share it publicly with one click.',
+      'Use the AI chat tools you already pay for as a real REST API. No new keys or fees.',
     type: 'website',
     url: 'https://spike-ai.vercel.app',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Spike — AI Gateway Manager',
+    title: 'Spike — Your ChatGPT and Gemini, now an API',
     description:
-      'Run ChatGPT and Gemini as a local REST API. Share it publicly with one click.',
+      'Use the AI chat tools you already pay for as a real REST API. No new keys or fees.',
   },
 };
 

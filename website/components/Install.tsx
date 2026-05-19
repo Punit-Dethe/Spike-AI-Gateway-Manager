@@ -19,7 +19,7 @@ export default function Install() {
           Two products. Pick what you need.
         </h2>
         <p className="mt-3 text-gray-700 text-lg">
-          Both ship as standalone Windows binaries. No Python, no Node, no setup.
+          Both run as standalone Windows apps. No Python or Node to install.
         </p>
       </div>
 
@@ -72,7 +72,7 @@ export default function Install() {
                 Download Spike
                 <Arrow />
               </a>
-              <span className="text-xs text-gray-500">Spike-Setup-1.0.0.exe · ~85 MB</span>
+              <span className="text-xs text-gray-500">Windows · free</span>
             </div>
           </div>
         </motion.div>
@@ -103,7 +103,7 @@ export default function Install() {
             <Bullet>OpenAI-compatible API on :6969</Bullet>
             <Bullet>System tray + web dashboard</Bullet>
             <Bullet>Privacy mode by default</Bullet>
-            <Bullet>~50 MB memory footprint</Bullet>
+            <Bullet>Lightweight, runs in the background</Bullet>
           </ul>
 
           <div className="mt-7 flex items-center gap-2">
@@ -116,7 +116,7 @@ export default function Install() {
               Download Spike Lite
               <Arrow />
             </a>
-            <span className="text-xs text-gray-500">SpikeLite.exe · ~55 MB</span>
+            <span className="text-xs text-gray-500">Windows · free</span>
           </div>
         </motion.div>
       </div>
