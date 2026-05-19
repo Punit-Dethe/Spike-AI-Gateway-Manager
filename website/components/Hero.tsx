@@ -1,95 +1,169 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import AmbientGrid from './AmbientGrid';
 import FlowDiagram from './FlowDiagram';
+import RotatingWord from './RotatingWord';
+import SectionLabel from './SectionLabel';
+
+const HEADLINE_LINE_1 = ['Your', 'ChatGPT', 'and', 'Gemini,'];
+const HEADLINE_LINE_2 = ['now', 'an', 'API.'];
+
+const letter = {
+  hidden: { opacity: 0, y: '0.5em' },
+  visible: { opacity: 1, y: 0 },
+};
+
+const lineContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
+};
 
 export default function Hero() {
   return (
     <section
       id="top"
-      className="relative max-w-6xl mx-auto px-6 pt-12 md:pt-20 pb-16 md:pb-20"
+      className="relative max-w-6xl mx-auto px-6 pt-12 md:pt-20 pb-16 md:pb-24"
     >
-      {/* Eyebrow */}
+      <AmbientGrid />
+
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="flex items-center gap-2 mb-6"
       >
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-accent bg-accent/10 px-3 py-1 rounded-full">
-          <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-          Spike 1.0 · stable
-        </span>
-        <span className="text-xs text-gray-500">Windows desktop app</span>
+        <SectionLabel number="01" label="Spike · v1.0 · stable" />
       </motion.div>
 
-      {/* Headline */}
-      <motion.h1
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.05 }}
-        className="font-serif text-5xl md:text-7xl font-semibold text-gray-900 leading-[1.05] tracking-tight max-w-4xl"
-      >
-        Your{' '}
-        <span className="relative inline-block">
-          <span className="relative z-10">ChatGPT and Gemini</span>
-          <span className="absolute -bottom-1 left-0 right-0 h-3 bg-accent/15 -z-0 rounded" />
-        </span>
-        , now an API.
-      </motion.h1>
+      {/* Kinetic headline */}
+      <h1 className="mt-6 font-serif text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-semibold text-gray-900 leading-[1.04] tracking-tight max-w-5xl">
+        <motion.span
+          variants={lineContainer}
+          initial="hidden"
+          animate="visible"
+          className="block"
+        >
+          {HEADLINE_LINE_1.map((word, i) => (
+            <motion.span
+              key={`l1-${i}`}
+              variants={letter}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              className={`inline-block mr-3 ${
+                word === 'ChatGPT' || word === 'Gemini,'
+                  ? 'italic font-normal'
+                  : ''
+              }`}
+            >
+              {word === 'Gemini,' ? (
+                <>
+                  <span className="relative">
+                    <span className="relative z-10">Gemini</span>
+                    <span
+                      aria-hidden
+                      className="absolute -bottom-1 left-0 right-0 h-3 bg-accent/20 -z-0 rounded"
+                    />
+                  </span>
+                  ,
+                </>
+              ) : (
+                word
+              )}
+            </motion.span>
+          ))}
+        </motion.span>
 
-      {/* Subhead */}
+        <motion.span
+          variants={lineContainer}
+          initial="hidden"
+          animate="visible"
+          transition={{ delayChildren: 0.6 }}
+          className="block"
+        >
+          {HEADLINE_LINE_2.map((word, i) => (
+            <motion.span
+              key={`l2-${i}`}
+              variants={letter}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              className="inline-block mr-3"
+            >
+              {word}
+            </motion.span>
+          ))}
+        </motion.span>
+      </h1>
+
+      {/* Subhead with rotating word */}
       <motion.p
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.12 }}
-        className="mt-6 text-lg md:text-xl text-gray-700 leading-relaxed max-w-2xl"
+        transition={{ duration: 0.6, delay: 1.1 }}
+        className="mt-7 text-lg md:text-xl text-gray-700 leading-relaxed max-w-2xl"
       >
-        Spike turns the AI chat tools you already pay for into a real REST API
-        — the same one OpenAI charges for. Use it in your code, share it with
-        your team, no new keys or fees.
+        Use the AI subscription you already pay for{' '}
+        <RotatingWord
+          words={['in your code.', 'in your team.', 'on a hosted app.', 'anywhere.']}
+        />
+        <br className="hidden md:block" />
+        No new keys. No new bills. No vendor to onboard.
       </motion.p>
 
       {/* CTAs */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.18 }}
-        className="mt-8 flex flex-wrap items-center gap-3"
+        transition={{ duration: 0.6, delay: 1.3 }}
+        className="mt-9 flex flex-wrap items-center gap-3"
       >
         <a
           href="#install"
-          className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-medium text-base py-3 px-6 rounded-2xl transition-all hover:shadow-md active:scale-[0.98]"
+          className="magnet-btn inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-medium text-base py-3 px-6 rounded-2xl hover:shadow-lg active:scale-[0.98]"
         >
           Download Spike
           <Arrow />
         </a>
         <a
           href="#how"
-          className="inline-flex items-center bg-sand-200 hover:bg-sand-300 text-gray-900 font-medium text-base py-3 px-6 rounded-2xl transition-all"
+          className="magnet-btn inline-flex items-center bg-sand-200 hover:bg-sand-300 text-gray-900 font-medium text-base py-3 px-6 rounded-2xl"
         >
-          How does it work?
+          See it work
         </a>
         <a
           href="https://github.com/Punit-Dethe/Spike-AI-Gateway-Manager"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 px-3 py-2"
+          className="link-sweep inline-flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 px-2 py-2"
         >
           <GhIcon />
-          View on GitHub
+          View source
         </a>
       </motion.div>
 
-      {/* Browser-like preview frame with the live flow diagram */}
+      {/* Live flow diagram */}
       <motion.div
         id="how"
-        initial={{ opacity: 0, y: 18 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.25 }}
-        className="mt-14 md:mt-20"
+        transition={{ duration: 0.8, delay: 1.5 }}
+        className="mt-16 md:mt-24"
       >
         <FlowDiagram />
+      </motion.div>
+
+      {/* Scroll hint */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 2 }}
+        className="hidden md:flex items-center justify-center gap-2 mt-12 text-[11px] tracking-[0.3em] uppercase text-gray-500 font-mono"
+      >
+        <span>Scroll</span>
+        <motion.span
+          animate={{ y: [0, 4, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          ↓
+        </motion.span>
+        <span>The thesis</span>
       </motion.div>
     </section>
   );

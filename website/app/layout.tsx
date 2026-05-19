@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, Crimson_Text } from 'next/font/google';
+import ClientSpotlight from '@/components/ClientSpotlight';
 import './globals.css';
 
 const inter = Inter({
@@ -52,6 +53,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${crimson.variable}`}>
       <body className="antialiased relative">
+        <ClientSpotlight />
         <div className="relative z-10">{children}</div>
       </body>
     </html>

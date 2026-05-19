@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import SectionLabel from './SectionLabel';
 
 const STEPS = [
   {
@@ -54,12 +55,10 @@ export default function TunnelSection() {
         <div className="relative grid md:grid-cols-2 gap-8 md:gap-12 p-8 md:p-14">
           {/* Left: copy */}
           <div>
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wide uppercase text-accent">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-              Cloudflare Tunnel
-            </span>
-            <h2 className="mt-3 font-serif text-4xl md:text-5xl font-semibold text-gray-900 leading-tight">
-              From localhost to the internet, in one click.
+            <SectionLabel number="05" label="Public access" />
+            <h2 className="mt-4 font-serif text-4xl md:text-5xl font-semibold text-gray-900 leading-[1.1]">
+              From localhost to the internet,{' '}
+              <em className="italic font-normal text-gray-600">in one click.</em>
             </h2>
             <p className="mt-4 text-gray-700 text-lg leading-relaxed">
               Click install. Toggle the switch. You&apos;ll have a public HTTPS

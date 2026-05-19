@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import SectionLabel from './SectionLabel';
 
 const GITHUB = 'https://github.com/Punit-Dethe/Spike-AI-Gateway-Manager';
 const RELEASES = `${GITHUB}/releases/latest`;
@@ -11,12 +12,13 @@ export default function Install() {
       id="install"
       className="max-w-6xl mx-auto px-6 py-20 md:py-28"
     >
+      <div className="mb-10">
+        <SectionLabel number="07" label="Get started" />
+      </div>
       <div className="text-center max-w-2xl mx-auto mb-12">
-        <span className="text-xs font-semibold tracking-wide uppercase text-accent">
-          Get started
-        </span>
-        <h2 className="mt-2 font-serif text-4xl md:text-5xl font-semibold text-gray-900 leading-tight">
-          Two products. Pick what you need.
+        <h2 className="font-serif text-4xl md:text-5xl font-semibold text-gray-900 leading-[1.1]">
+          Two products.{' '}
+          <em className="italic font-normal text-gray-600">Pick what you need.</em>
         </h2>
         <p className="mt-3 text-gray-700 text-lg">
           Both run as standalone Windows apps. No Python or Node to install.

@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import SectionLabel from './SectionLabel';
 
 interface Feature {
   eyebrow: string;
@@ -51,12 +52,11 @@ const FEATURES: Feature[] = [
 export default function Features() {
   return (
     <section className="max-w-6xl mx-auto px-6 py-20 md:py-24">
-      <div className="mb-12 max-w-2xl">
-        <span className="text-xs font-semibold tracking-wide uppercase text-accent">
-          What's inside
-        </span>
-        <h2 className="mt-2 font-serif text-4xl md:text-5xl font-semibold text-gray-900 leading-tight">
-          A complete gateway, ready to ship.
+      <SectionLabel number="04" label="The toolkit" />
+      <div className="mt-6 mb-12 max-w-2xl">
+        <h2 className="font-serif text-4xl md:text-5xl font-semibold text-gray-900 leading-[1.1]">
+          A complete gateway,{' '}
+          <em className="italic font-normal text-gray-600">ready to ship.</em>
         </h2>
         <p className="mt-3 text-gray-700 text-lg">
           Six things Spike does so you don&apos;t have to wire them yourself.

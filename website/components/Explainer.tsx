@@ -1,31 +1,35 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import SectionLabel from './SectionLabel';
 
 /**
  * Plain-language explainer that answers "what is Spike, really?"
- * Sits between the hero and the features section so the value prop
- * lands before any specs.
+ * Sits between the hero and the manifesto so the value prop lands
+ * before any specs.
  */
 export default function Explainer() {
   return (
-    <section className="relative max-w-6xl mx-auto px-6 py-20 md:py-24 border-t border-sand-300/40">
-      <div className="max-w-3xl mb-12">
-        <span className="text-xs font-semibold tracking-wide uppercase text-accent">
-          What is Spike, really?
-        </span>
-        <h2 className="mt-2 font-serif text-3xl md:text-4xl font-semibold text-gray-900 leading-tight">
-          You're already paying for the AI. Use it everywhere.
+    <section className="relative max-w-6xl mx-auto px-6 py-20 md:py-28">
+      <SectionLabel number="02" label="In plain words" />
+
+      <div className="mt-6 max-w-3xl mb-12">
+        <h2 className="font-serif text-3xl md:text-5xl font-semibold text-gray-900 leading-[1.1]">
+          You&apos;re already paying for the AI.{' '}
+          <em className="italic font-normal text-gray-600">
+            Use it everywhere.
+          </em>
         </h2>
-        <p className="mt-4 text-gray-700 text-lg leading-relaxed">
-          You probably already have ChatGPT Plus open in a tab, or use Gemini in
-          your browser every day. The hard part isn&apos;t getting answers from
-          them. It&apos;s getting those answers inside the code you write.
+        <p className="mt-5 text-gray-700 text-lg leading-relaxed">
+          You probably already have ChatGPT Plus open in a tab, or use Gemini
+          in your browser every day. The hard part isn&apos;t getting answers.
+          It&apos;s getting those answers <em>inside</em> the code you write.
         </p>
         <p className="mt-3 text-gray-700 text-lg leading-relaxed">
-          Spike runs on your machine, sends your prompts to the same AI you&apos;d
-          use anyway, and hands the answer back as a clean API response. Same
-          models, same quality, same subscription you already pay for.
+          Spike runs on your machine, sends your prompts to the same AI
+          you&apos;d use anyway, and hands the answer back as a clean API
+          response. Same models, same quality, same subscription you already
+          pay for.
         </p>
       </div>
 

@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import SectionLabel from './SectionLabel';
 
 type Lang = 'python' | 'openai' | 'javascript' | 'curl';
 
@@ -88,14 +89,15 @@ export default function ApiSection() {
 
   return (
     <section id="api" className="max-w-6xl mx-auto px-6 py-20 md:py-28">
+      <div className="mb-10">
+        <SectionLabel number="06" label="For developers" />
+      </div>
       <div className="grid md:grid-cols-12 gap-8 md:gap-12">
         {/* Left: copy */}
         <div className="md:col-span-5">
-          <span className="text-xs font-semibold tracking-wide uppercase text-accent">
-            For developers
-          </span>
-          <h2 className="mt-2 font-serif text-4xl md:text-5xl font-semibold text-gray-900 leading-tight">
-            Three lines of code. Any model.
+          <h2 className="font-serif text-4xl md:text-5xl font-semibold text-gray-900 leading-[1.1]">
+            Three lines of code.{' '}
+            <em className="italic font-normal text-gray-600">Any model.</em>
           </h2>
           <p className="mt-4 text-gray-700 text-lg leading-relaxed">
             Same endpoint, same JSON shape, every model. Just change the model

@@ -49,10 +49,22 @@ export default function FlowDiagram() {
           className="w-full h-[180px]"
           preserveAspectRatio="xMidYMid meet"
         >
+          {/* Path definitions for particle motion */}
+          <defs>
+            <path id="path-gemini" d="M 165 50 C 250 50, 270 100, 335 100" />
+            <path id="path-chat" d="M 165 150 C 250 150, 270 100, 335 100" />
+            <path id="path-tunnel" d="M 495 100 L 595 100" />
+          </defs>
+
           {/* Lines first so nodes stack on top */}
           <Line d="M 165 50 C 250 50, 270 100, 335 100" live={geminiOn && proxyOn} />
           <Line d="M 165 150 C 250 150, 270 100, 335 100" live={chatOn && proxyOn} />
           <Line d="M 495 100 L 595 100" live={proxyOn && tunnelOn} />
+
+          {/* Particles traveling along active lines */}
+          {geminiOn && proxyOn && <Particle pathId="path-gemini" />}
+          {chatOn && proxyOn && <Particle pathId="path-chat" delay={0.5} />}
+          {proxyOn && tunnelOn && <Particle pathId="path-tunnel" delay={0.3} duration={1.5} />}
 
           <Node x={20} y={25} w={145} h={50} label="Gemini" meta=":6969" on={geminiOn} />
           <Node x={20} y={125} w={145} h={50} label="ChatGPT" meta=":5005" on={chatOn} />
@@ -99,6 +111,37 @@ function Line({ d, live }: { d: string; live: boolean }) {
       className={live ? 'flow-line' : undefined}
       style={{ transition: 'stroke 400ms ease' }}
     />
+  );
+}
+
+function Particle({
+  pathId,
+  delay = 0,
+  duration = 2,
+}: {
+  pathId: string;
+  delay?: number;
+  duration?: number;
+}) {
+  return (
+    <circle r={3} fill="#2563EB" opacity={0.9}>
+      <animateMotion
+        dur={`${duration}s`}
+        begin={`${delay}s`}
+        repeatCount="indefinite"
+        rotate="auto"
+      >
+        <mpath href={`#${pathId}`} />
+      </animateMotion>
+      <animate
+        attributeName="opacity"
+        values="0;1;1;0"
+        keyTimes="0;0.1;0.9;1"
+        dur={`${duration}s`}
+        begin={`${delay}s`}
+        repeatCount="indefinite"
+      />
+    </circle>
   );
 }
 
