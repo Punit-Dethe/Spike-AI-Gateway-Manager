@@ -166,3 +166,8 @@ spike-rust/
 *.tar.gz
 *.rar
 *.7z
+gemini-server/INSTALL.md
+gemini-server/PRIVACY_MODE.md
+gemini-server/PROJECT_SUMMARY.md
+gemini-server/RELEASE.md
+gemini-server/START.md

@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Crimson Text', 'Playfair Display', Georgia, serif;
+}
+
+html,
+body {
+  background-color: rgb(241, 237, 225);
+  color: rgb(23, 23, 23);
+  font-family: var(--font-sans);
+}
+
+/* Subtle paper grain on the page background — adds warmth without distraction */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* Flow line animation (used in FlowDiagram) */
+@keyframes flow-dash {
+  to {
+    stroke-dashoffset: -22;
+  }
+}
+
+.flow-line {
+  animation: flow-dash 0.9s linear infinite;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  background: rgb(241, 237, 225);
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(210, 205, 195);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(185, 178, 164);
+}
+
+/* Code blocks */
+pre {
+  font-family: var(--font-mono);
+  tab-size: 2;
+}
+
+/* Selection */
+::selection {
+  background: rgba(37, 99, 235, 0.18);
+  color: inherit;
+}
+
+/* Smooth in-page anchor scroll */
+html {
+  scroll-behavior: smooth;
+}
