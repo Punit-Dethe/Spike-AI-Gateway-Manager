@@ -4,147 +4,300 @@ interface StandaloneSetupCardProps {
   onOpen: () => void;
 }
 
-/**
- * Spotlight card for the standalone Gemini setup wizard.
- *
- * Visual goals:
- *  - More presence than the surrounding sand-100 cards (deeper bg, soft glow)
- *  - Tells the user *why* they'd want this in three quick beats
- *  - Compact: same approximate footprint as a normal dashboard card
- */
 const StandaloneSetupCard = ({ onOpen }: StandaloneSetupCardProps) => {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: 0.1 }}
+      transition={{ duration: 0.4, delay: 0.1 }}
       className="relative mt-6 overflow-hidden rounded-2xl"
+      style={{ background: 'rgb(228, 224, 213)' }}
     >
-      {/* Layered backgrounds: deep sand base + radial accent glow */}
-      <div className="absolute inset-0 bg-sand-300" aria-hidden="true" />
+      {/* Soft blue glow — top right */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 opacity-[0.18] pointer-events-none"
+        className="absolute pointer-events-none"
         style={{
-          background:
-            'radial-gradient(circle at 88% 12%, #2563EB 0%, transparent 55%)',
+          top: '-80px',
+          right: '-80px',
+          width: '320px',
+          height: '320px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 65%)',
         }}
       />
-      {/* Subtle inner border for definition */}
+      {/* Hairline border */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-sand-400/50 pointer-events-none"
+        className="absolute inset-0 rounded-2xl pointer-events-none"
+        style={{ boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06)' }}
       />
 
-      {/* Content */}
-      <div className="relative px-7 py-6 flex items-center gap-6">
-        {/* Illustration column */}
-        <div className="hidden md:block shrink-0">
-          <SetupGlyph />
+      <div className="relative px-10 py-10">
+        {/* Eyebrow */}
+        <div className="flex items-center gap-3 mb-7">
+          <span className="text-[11px] font-semibold tracking-[0.12em] uppercase text-accent">
+            Deploy
+          </span>
+          <span className="flex-1 h-px bg-sand-300/70" />
         </div>
 
-        {/* Copy column */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-xs font-semibold tracking-wide uppercase text-accent">
-              Build &amp; deploy
-            </span>
-            <span className="h-px flex-1 bg-sand-400/60" />
+        {/* Main layout */}
+        <div className="flex items-center justify-between gap-10">
+
+          {/* Left: copy + CTA */}
+          <div className="flex-1 min-w-0">
+            <h3
+              className="font-serif font-semibold text-gray-900 leading-tight mb-4"
+              style={{ fontSize: '1.75rem', letterSpacing: '-0.01em' }}
+            >
+              Run Spike inside<br />your own project
+            </h3>
+
+            <p className="text-sm leading-relaxed text-gray-600 mb-8" style={{ maxWidth: '360px' }}>
+              Generate a self-contained Gemini API server and drop it straight
+              into your repo. It lives alongside your code — no Spike app
+              required at runtime.
+            </p>
+
+            {/* Feature pills */}
+            <div className="flex flex-wrap gap-2 mb-8">
+              {['Standalone Python server', 'OpenAI-compatible', 'Deploy anywhere'].map((label) => (
+                <span
+                  key={label}
+                  className="text-xs font-medium px-3 py-1.5 rounded-full text-gray-700"
+                  style={{
+                    background: 'rgb(210, 205, 195)',
+                    border: '1px solid rgba(0,0,0,0.07)',
+                  }}
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+
+            {/* CTA */}
+            <button
+              onClick={onOpen}
+              className="group inline-flex items-center gap-2.5 bg-accent hover:bg-accent-hover text-white font-medium text-sm rounded-xl transition-all duration-200 active:scale-[0.97] hover:shadow-sm"
+              style={{ padding: '11px 22px' }}
+            >
+              Open setup wizard
+              <svg
+                viewBox="0 0 16 16"
+                width="13"
+                height="13"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="transition-transform duration-200 group-hover:translate-x-0.5"
+              >
+                <path d="M3 8h10" />
+                <path d="M9 4l4 4-4 4" />
+              </svg>
+            </button>
           </div>
 
-          <h3 className="text-gray-900 text-xl font-serif font-semibold mb-1.5">
-            Run Spike inside your own project
-          </h3>
-          <p className="text-gray-700 text-sm leading-relaxed mb-3 max-w-xl">
-            Generate a self-contained Gemini API server with your tokens baked in. Drop
-            it into your repo, deploy it anywhere, no Spike app required at runtime.
-          </p>
-
-          <ul className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1.5 mb-4">
-            <Bullet>Standalone Python server</Bullet>
-            <Bullet>OpenAI-compatible endpoint</Bullet>
-            <Bullet>Deploy to any host</Bullet>
-          </ul>
-
-          <button
-            onClick={onOpen}
-            className="group inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 active:bg-gray-800 text-white font-medium text-sm py-2.5 px-5 rounded-xl transition-all duration-150 hover:shadow-md active:scale-[0.98]"
-          >
-            <span>Open setup wizard</span>
-            <svg
-              viewBox="0 0 16 16"
-              width="14"
-              height="14"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="transition-transform duration-200 group-hover:translate-x-0.5"
-            >
-              <path d="M3 8h10" />
-              <path d="M9 4l4 4-4 4" />
-            </svg>
-          </button>
+          {/* Right: file tree illustration */}
+          <div className="hidden lg:block shrink-0">
+            <FileTreeIllustration />
+          </div>
         </div>
       </div>
     </motion.div>
   );
 };
 
-// --- Bullet -----------------------------------------------------------------
+// ── File tree illustration ───────────────────────────────────────────────────
+// Shows a project folder with Spike's server file living inside it.
 
-const Bullet = ({ children }: { children: React.ReactNode }) => (
-  <li className="flex items-center gap-2 text-xs text-gray-700">
-    <span className="w-1 h-1 rounded-full bg-accent shrink-0" />
-    <span className="truncate">{children}</span>
-  </li>
-);
+const FILE_BG       = 'rgb(236,234,225)';
+const FILE_BORDER   = 'rgba(0,0,0,0.08)';
+const TEXT_DIM      = 'rgb(140,130,118)';
+const TEXT_NORMAL   = 'rgb(55,48,40)';
+const INDENT        = 20;
+const ROW_H         = 28;
+const FONT          = "Inter, system-ui, sans-serif";
 
-// --- Glyph: little folder + arrow + server illustration ---------------------
+interface FileRowProps {
+  y: number;
+  indent: number;
+  icon: 'folder' | 'py' | 'txt' | 'json' | 'spike';
+  name: string;
+  dim?: boolean;
+  highlight?: boolean;
+}
 
-const SetupGlyph = () => (
-  <svg
-    width="92"
-    height="92"
-    viewBox="0 0 92 92"
-    fill="none"
-    aria-hidden="true"
-    className="drop-shadow-sm"
-  >
-    {/* Soft halo behind the glyph */}
-    <circle cx="46" cy="46" r="40" fill="#F1EDE1" opacity="0.6" />
+// Renders a single row of the file tree as SVG elements
+const FileRow = ({ y, indent, icon, name, dim, highlight }: FileRowProps) => {
+  const x = 16 + indent;
+  const cy = y + ROW_H / 2;
+  const textColor = dim ? TEXT_DIM : highlight ? 'rgb(37,99,235)' : TEXT_NORMAL;
+  const fontWeight = highlight ? '600' : '400';
 
-    {/* Folder (your project) */}
-    <g transform="translate(8, 28)">
+  // Highlight pill behind the spike row
+  const pillEl = highlight ? (
+    <rect
+      x={8} y={y + 3}
+      width={220} height={ROW_H - 6}
+      rx={6}
+      fill="rgba(37,99,235,0.08)"
+      stroke="rgba(37,99,235,0.18)"
+      strokeWidth="1"
+    />
+  ) : null;
+
+  // Icon
+  let iconEl: React.ReactNode = null;
+  if (icon === 'folder') {
+    iconEl = (
       <path
-        d="M2 4 a2 2 0 0 1 2-2 h8 l3 3 h13 a2 2 0 0 1 2 2 v17 a2 2 0 0 1 -2 2 H4 a2 2 0 0 1 -2 -2 Z"
-        fill="#ECEAE1"
-        stroke="#9b9384"
-        strokeWidth="1.2"
+        d={`M${x} ${cy - 5} a2 2 0 0 1 2-2 h4 l2 2 h7 a2 2 0 0 1 2 2 v6 a2 2 0 0 1 -2 2 H${x + 2} a2 2 0 0 1 -2 -2z`}
+        fill="rgba(0,0,0,0.18)"
       />
-      <line x1="6" y1="14" x2="26" y2="14" stroke="#9b9384" strokeWidth="1" strokeLinecap="round" />
-      <line x1="6" y1="18" x2="22" y2="18" stroke="#9b9384" strokeWidth="1" strokeLinecap="round" />
-    </g>
+    );
+  } else if (icon === 'spike') {
+    // Small "S" badge
+    iconEl = (
+      <>
+        <rect x={x} y={cy - 6} width={14} height={12} rx={3}
+          fill="rgba(37,99,235,0.18)" stroke="rgba(37,99,235,0.35)" strokeWidth="0.8"
+        />
+        <text x={x + 7} y={cy + 4} textAnchor="middle"
+          fontSize="7.5" fill="rgb(37,99,235)"
+          fontFamily={FONT} fontWeight="700"
+        >S</text>
+      </>
+    );
+  } else {
+    // Generic file — small rectangle with a folded corner
+    const fw = 12; const fh = 14;
+    const fold = 4;
+    iconEl = (
+      <path
+        d={`M${x} ${cy - fh / 2} h${fw - fold} l${fold} ${fold} v${fh - fold} H${x}z`}
+        fill={dim ? 'rgba(0,0,0,0.07)' : 'rgba(0,0,0,0.13)'}
+      />
+    );
+  }
 
-    {/* Arrow */}
-    <g stroke="#2563EB" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none">
-      <path d="M40 46 L52 46" />
-      <path d="M48 42 L52 46 L48 50" />
-    </g>
+  // Extension badge color
+  let extColor = TEXT_DIM;
+  if (icon === 'py')   extColor = 'rgb(59,130,246)';
+  if (icon === 'json') extColor = 'rgb(180,130,60)';
+  if (icon === 'spike') extColor = 'rgb(37,99,235)';
 
-    {/* Server (deployable) */}
-    <g transform="translate(56, 28)">
-      <rect x="0" y="0" width="30" height="11" rx="2" fill="#ECEAE1" stroke="#9b9384" strokeWidth="1.2" />
-      <rect x="0" y="14" width="30" height="11" rx="2" fill="#ECEAE1" stroke="#9b9384" strokeWidth="1.2" />
-      {/* Status dots — both green to imply "running anywhere" */}
-      <circle cx="5" cy="5.5" r="1.5" fill="#10b981" />
-      <circle cx="5" cy="19.5" r="1.5" fill="#10b981" />
-      {/* Detail lines */}
-      <line x1="11" y1="5.5" x2="25" y2="5.5" stroke="#9b9384" strokeWidth="0.9" strokeLinecap="round" />
-      <line x1="11" y1="19.5" x2="25" y2="19.5" stroke="#9b9384" strokeWidth="0.9" strokeLinecap="round" />
+  // Split name into base + extension for coloring
+  const dotIdx = name.lastIndexOf('.');
+  const base = dotIdx > -1 ? name.slice(0, dotIdx) : name;
+  const ext  = dotIdx > -1 ? name.slice(dotIdx) : '';
+
+  return (
+    <g>
+      {pillEl}
+      {iconEl}
+      {/* base name */}
+      <text
+        x={x + 20} y={cy + 4.5}
+        fontSize="11.5"
+        fill={textColor}
+        fontFamily={FONT}
+        fontWeight={fontWeight}
+      >
+        {base}
+      </text>
+      {/* extension — slightly different color */}
+      {ext && (
+        <text
+          x={x + 20 + base.length * 6.7}
+          y={cy + 4.5}
+          fontSize="11.5"
+          fill={highlight ? extColor : dim ? TEXT_DIM : TEXT_DIM}
+          fontFamily={FONT}
+          fontWeight={fontWeight}
+        >
+          {ext}
+        </text>
+      )}
     </g>
-  </svg>
-);
+  );
+};
+
+const FileTreeIllustration = () => {
+  // Row definitions — y positions are computed from index
+  const rows: Omit<FileRowProps, 'y'>[] = [
+    { indent: 0,          icon: 'folder', name: 'my-project',       dim: false },
+    { indent: INDENT,     icon: 'folder', name: 'src',               dim: true  },
+    { indent: INDENT * 2, icon: 'py',     name: 'main.py',           dim: true  },
+    { indent: INDENT * 2, icon: 'py',     name: 'routes.py',         dim: true  },
+    { indent: INDENT,     icon: 'folder', name: 'spike',             dim: false, highlight: false },
+    { indent: INDENT * 2, icon: 'spike',  name: 'gemini_server.py',  dim: false, highlight: true  },
+    { indent: INDENT * 2, icon: 'txt',    name: 'requirements.txt',  dim: false, highlight: false },
+    { indent: INDENT,     icon: 'json',   name: 'package.json',      dim: true  },
+  ];
+
+  const PAD_TOP = 16;
+  const totalH = PAD_TOP + rows.length * ROW_H + PAD_TOP;
+
+  return (
+    <svg
+      width="240"
+      height={totalH}
+      viewBox={`0 0 240 ${totalH}`}
+      fill="none"
+      aria-hidden="true"
+    >
+      {/* Card background */}
+      <rect x="0" y="0" width="240" height={totalH} rx="12"
+        fill={FILE_BG} stroke={FILE_BORDER} strokeWidth="1"
+      />
+
+      {/* Window chrome dots */}
+      <circle cx="16" cy="12" r="3.5" fill="rgba(0,0,0,0.12)" />
+      <circle cx="28" cy="12" r="3.5" fill="rgba(0,0,0,0.12)" />
+      <circle cx="40" cy="12" r="3.5" fill="rgba(0,0,0,0.12)" />
+
+      {/* Separator under chrome */}
+      <line x1="0" y1="22" x2="240" y2="22"
+        stroke="rgba(0,0,0,0.06)" strokeWidth="1"
+      />
+
+      {/* Tree connector lines */}
+      {rows.map((row, i) => {
+        if (row.indent === 0) return null;
+        const y = PAD_TOP + i * ROW_H;
+        const cy = y + ROW_H / 2;
+        const parentX = 16 + row.indent - INDENT + 7;
+        return (
+          <g key={i}>
+            {/* vertical stem */}
+            <line
+              x1={parentX} y1={y}
+              x2={parentX} y2={cy}
+              stroke="rgba(0,0,0,0.10)" strokeWidth="1"
+            />
+            {/* horizontal branch */}
+            <line
+              x1={parentX} y1={cy}
+              x2={16 + row.indent} y2={cy}
+              stroke="rgba(0,0,0,0.10)" strokeWidth="1"
+            />
+          </g>
+        );
+      })}
+
+      {/* File rows */}
+      {rows.map((row, i) => (
+        <FileRow
+          key={i}
+          y={PAD_TOP + i * ROW_H}
+          {...row}
+        />
+      ))}
+    </svg>
+  );
+};
 
 export default StandaloneSetupCard;

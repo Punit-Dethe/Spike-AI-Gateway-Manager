@@ -17,7 +17,7 @@ const EndpointCard = ({ proxyStatus = 'stopped' }: EndpointCardProps) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const isLive = proxyStatus === 'running';
+  const isLive    = proxyStatus === 'running';
   const isPending = proxyStatus === 'starting' || proxyStatus === 'stopping';
 
   const dotClass = isLive
