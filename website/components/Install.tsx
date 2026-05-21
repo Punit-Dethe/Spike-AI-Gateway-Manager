@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import SectionLabel from './SectionLabel';
 
 const GITHUB = 'https://github.com/Punit-Dethe/Spike-AI-Gateway-Manager';
-const RELEASES = `${GITHUB}/releases/latest`;
+const SPIKE_DOWNLOAD = `${GITHUB}/releases/download/spike_New_Release/Spike-Setup-1.0.0.exe`;
+const SPIKE_LITE_DOWNLOAD = `${GITHUB}/releases/download/spike_New_Release/SpikeLite.exe`;
 
 export default function Install() {
   return (
@@ -66,7 +67,7 @@ export default function Install() {
 
             <div className="mt-7 flex items-center gap-2">
               <a
-                href={RELEASES}
+                href={SPIKE_DOWNLOAD}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-medium text-sm py-2.5 px-5 rounded-xl transition-all hover:shadow-md active:scale-[0.98]"
@@ -110,7 +111,7 @@ export default function Install() {
 
           <div className="mt-7 flex items-center gap-2">
             <a
-              href={RELEASES}
+              href={SPIKE_LITE_DOWNLOAD}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-sand-300 hover:bg-sand-400 text-gray-900 font-medium text-sm py-2.5 px-5 rounded-xl transition-all hover:shadow-sm active:scale-[0.98]"

@@ -58,8 +58,8 @@ Test prompts in the integrated chat interface before writing code.
 
 ### Installation
 
-1. Download the latest release from [Releases](../../releases)
-2. Run `Spike-Setup-1.0.0.exe`
+1. Download [Spike-Setup-1.0.0.exe](https://github.com/Punit-Dethe/Spike-AI-Gateway-Manager/releases/download/spike_New_Release/Spike-Setup-1.0.0.exe)
+2. Run the installer
 3. Launch Spike from the Start Menu
 
 All Python dependencies are bundled. No separate installation required.
