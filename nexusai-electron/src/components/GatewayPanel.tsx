@@ -1,26 +1,27 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import type { TunnelStatus, CloudflaredInstallProgress } from '../electron';
+import type { TunnelStatus, TunnelInstallProgress } from '../electron';
 
-type ServiceRunStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'error';
+type ServiceRunStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'analyzing' | 'error';
 
 interface GatewayPanelProps {
   proxyStatus: ServiceRunStatus;
   tunnelStatus: TunnelStatus;
-  installProgress: CloudflaredInstallProgress | null;
+  installProgress: TunnelInstallProgress | null;
   onStartProxy: () => void;
   onStopProxy: () => void;
   onKillProxy: () => void;
-  onTunnelInstall: () => void | Promise<void>;
   onTunnelStart: () => void | Promise<void>;
   onTunnelStop: () => void | Promise<void>;
+  /** Sends the user to the tunnel setup card (Dashboard tab). */
+  onOpenTunnelSetup?: () => void;
 }
 
 /**
  * Services tab — Gateway panel.
  *
  * Combines the two pieces of "how requests reach Spike" infrastructure:
- * the local Unified Proxy and the optional public Cloudflare tunnel.
+ * the local Unified Proxy and the optional public ngrok tunnel.
  *
  * Visually distinct from the bridge cards below (which need credentials and
  * active management) — this panel is for plumbing, so it gets a darker, more
@@ -33,9 +34,9 @@ const GatewayPanel = ({
   onStartProxy,
   onStopProxy,
   onKillProxy,
-  onTunnelInstall,
   onTunnelStart,
   onTunnelStop,
+  onOpenTunnelSetup,
 }: GatewayPanelProps) => {
   return (
     <motion.div
@@ -86,9 +87,9 @@ const GatewayPanel = ({
           <TunnelTile
             tunnelStatus={tunnelStatus}
             installProgress={installProgress}
-            onInstall={onTunnelInstall}
             onStart={onTunnelStart}
             onStop={onTunnelStop}
+            onOpenSetup={onOpenTunnelSetup}
           />
         </div>
       </div>
@@ -145,18 +146,19 @@ const ProxyTile = ({ status, onStart, onStop, onKill }: ProxyTileProps) => {
 
 interface TunnelTileProps {
   tunnelStatus: TunnelStatus;
-  installProgress: CloudflaredInstallProgress | null;
-  onInstall: () => void | Promise<void>;
+  installProgress: TunnelInstallProgress | null;
   onStart: () => void | Promise<void>;
   onStop: () => void | Promise<void>;
+  /** Sends the user to the Dashboard tab where the full setup card lives. */
+  onOpenSetup?: () => void;
 }
 
 const TunnelTile = ({
   tunnelStatus,
   installProgress,
-  onInstall,
   onStart,
   onStop,
+  onOpenSetup,
 }: TunnelTileProps) => {
   const showProgress =
     tunnelStatus.installing ||
@@ -164,24 +166,28 @@ const TunnelTile = ({
       installProgress.phase !== 'complete' &&
       installProgress.phase !== 'error');
 
-  // Not installed — install CTA
+  // Not yet ready (no authtoken or no binary) — link to Dashboard for full setup
   if (!tunnelStatus.installed && !showProgress) {
     return (
-      <TileShell kind="public" label="Public" title="Cloudflare Tunnel" status="stopped">
+      <TileShell kind="public" label="Public" title="Public Tunnel" status="stopped">
         <div className="flex flex-col gap-3">
           <p className="text-xs text-gray-600 leading-relaxed">
-            Expose the local proxy at a public{' '}
-            <code className="font-mono text-[11px] bg-sand-100 px-1.5 py-0.5 rounded">
-              trycloudflare.com
-            </code>{' '}
-            URL. One-time install, ~22 MB.
+            {tunnelStatus.authConfigured
+              ? 'ngrok binary is missing — finish setup in the Dashboard.'
+              : 'Connect a free ngrok account to get a stable public URL.'}
           </p>
-          <button
-            onClick={() => void onInstall()}
-            className="self-start bg-accent hover:bg-accent-hover text-white font-medium text-sm py-2 px-4 rounded-xl transition-all duration-150 hover:shadow-sm active:scale-[0.98]"
-          >
-            Install
-          </button>
+          {onOpenSetup ? (
+            <button
+              onClick={onOpenSetup}
+              className="self-start bg-accent hover:bg-accent-hover text-white font-medium text-sm py-2 px-4 rounded-xl transition-all duration-150 hover:shadow-sm active:scale-[0.98]"
+            >
+              {tunnelStatus.authConfigured ? 'Finish setup' : 'Set up tunnel'}
+            </button>
+          ) : (
+            <span className="self-start text-xs text-gray-500">
+              Open the Dashboard tab to complete setup.
+            </span>
+          )}
         </div>
       </TileShell>
     );
@@ -194,14 +200,14 @@ const TunnelTile = ({
         ? installProgress.percent
         : null;
     return (
-      <TileShell kind="public" label="Public" title="Cloudflare Tunnel" status="starting">
+      <TileShell kind="public" label="Public" title="Public Tunnel" status="starting">
         <div>
           <div className="text-xs font-medium text-gray-900 mb-2">
             {installProgress?.phase === 'starting'
               ? 'Preparing download…'
               : percent !== null
-                ? `Downloading… ${percent}%`
-                : 'Downloading…'}
+                ? `Downloading ngrok… ${percent}%`
+                : 'Downloading ngrok…'}
           </div>
           <div className="h-1.5 w-full bg-sand-300 rounded-full overflow-hidden">
             <motion.div
@@ -218,37 +224,37 @@ const TunnelTile = ({
   // Install error
   if (installProgress?.phase === 'error') {
     return (
-      <TileShell kind="public" label="Public" title="Cloudflare Tunnel" status="error">
+      <TileShell kind="public" label="Public" title="Public Tunnel" status="error">
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-medium text-rose-700">Install failed</p>
+          <p className="text-xs font-medium text-rose-700">Setup failed</p>
           <p className="text-[11px] text-rose-600 break-words leading-relaxed">
             {installProgress.error}
           </p>
-          <button
-            onClick={() => void onInstall()}
-            className="self-start bg-accent hover:bg-accent-hover text-white font-medium text-xs py-1.5 px-3 rounded-lg transition-all duration-150 active:scale-[0.97]"
-          >
-            Try again
-          </button>
+          {onOpenSetup && (
+            <button
+              onClick={onOpenSetup}
+              className="self-start bg-accent hover:bg-accent-hover text-white font-medium text-xs py-1.5 px-3 rounded-lg transition-all duration-150 active:scale-[0.97]"
+            >
+              Open setup
+            </button>
+          )}
         </div>
       </TileShell>
     );
   }
 
-  // Installed — show URL + power button
+  // Ready — show URL + power button
   const isRunning = tunnelStatus.status === 'running';
   const isPending =
     tunnelStatus.status === 'starting' || tunnelStatus.status === 'stopping';
 
   const displayUrl =
-    isRunning && tunnelStatus.url
-      ? `${tunnelStatus.url}/v1`
-      : 'https://…trycloudflare.com/v1';
+    isRunning && tunnelStatus.url ? `${tunnelStatus.url}/v1` : 'https://…ngrok-free.app/v1';
 
-  let footnote = 'Public URL is regenerated each session';
+  let footnote = 'Stable public URL via ngrok';
   if (tunnelStatus.status === 'error') footnote = tunnelStatus.error || 'Tunnel error';
   else if (tunnelStatus.status === 'starting')
-    footnote = 'Waiting for a public URL from Cloudflare…';
+    footnote = 'Establishing the secure tunnel…';
   else if (tunnelStatus.status === 'stopping') footnote = 'Closing tunnel…';
   else if (tunnelStatus.status === 'stopped')
     footnote = 'Currently offline. Tap power to expose.';
@@ -257,7 +263,7 @@ const TunnelTile = ({
     <Tile
       kind="public"
       label="Public"
-      title="Cloudflare Tunnel"
+      title="Public Tunnel"
       status={tunnelStatus.status}
       url={displayUrl}
       urlMuted={!isRunning}
@@ -393,6 +399,7 @@ const StatusDot = ({ status }: { status: ServiceRunStatus }) => {
     running: { dot: 'bg-emerald-500', label: 'Live', text: 'text-emerald-700' },
     starting: { dot: 'bg-amber-500 animate-pulse', label: 'Starting', text: 'text-amber-700' },
     stopping: { dot: 'bg-amber-500 animate-pulse', label: 'Stopping', text: 'text-amber-700' },
+    analyzing: { dot: 'bg-amber-500 animate-pulse', label: 'Analyzing', text: 'text-amber-700' },
     error: { dot: 'bg-rose-500', label: 'Error', text: 'text-rose-700' },
     stopped: { dot: 'bg-gray-400', label: 'Off', text: 'text-gray-500' },
   };

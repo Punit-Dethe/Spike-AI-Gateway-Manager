@@ -8,7 +8,7 @@ interface ServiceCardProps {
   name: string;
   serviceName: string;
   port: number;
-  status: 'stopped' | 'starting' | 'running' | 'stopping' | 'error';
+  status: 'stopped' | 'starting' | 'running' | 'stopping' | 'analyzing' | 'error';
   description: string;
   primary?: boolean;
   errorMessage?: string;
@@ -126,6 +126,12 @@ const ServiceCard = ({ name, serviceName, port, status, description, primary = f
           text: 'Starting...',
           textColor: 'text-amber-700',
         };
+      case 'analyzing':
+        return {
+          dot: 'bg-amber-500 animate-pulse',
+          text: 'Analyzing...',
+          textColor: 'text-amber-700',
+        };
       case 'stopping':
         return {
           dot: 'bg-amber-500 animate-pulse',
@@ -149,7 +155,7 @@ const ServiceCard = ({ name, serviceName, port, status, description, primary = f
 
   const statusConfig = getStatusConfig();
   const isRunning = status === 'running';
-  const isTransitioning = status === 'starting' || status === 'stopping';
+  const isTransitioning = status === 'starting' || status === 'stopping' || status === 'analyzing';
 
   return (
     <motion.div

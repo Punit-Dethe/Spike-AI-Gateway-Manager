@@ -14,9 +14,9 @@ if __name__ == "__main__":
     print("=" * 60)
     print("NexusAI Unified Proxy")
     print("=" * 60)
-    print("Gemini Bridge:  http://localhost:6969")
-    print("Chat2API:       http://localhost:5005")
+    print("Gemini Bridge:  http://127.0.0.1:6969")
+    print("Chat2API:       http://127.0.0.1:5005")
     print("Proxy:          http://0.0.0.0:8000")
     print("=" * 60)
-    
+
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info", access_log=False)

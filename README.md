@@ -7,8 +7,9 @@
 
   <p>
     <a href="#quick-start">Quick Start</a> •
-    <a href="#cloudflare-tunnel">Public Tunnel</a> •
+    <a href="#public-tunnel-ngrok">Public Tunnel</a> •
     <a href="#api-reference">API Reference</a> •
+    <a href="#handling-transient-tunnel-errors">Retry Helper</a> •
     <a href="API_DOCUMENTATION.md">Documentation</a> •
     <a href="#contributing">Contributing</a>
   </p>
@@ -16,7 +17,7 @@
 
 ---
 
-Spike converts ChatGPT and Google Gemini into OpenAI-compatible APIs that run locally on your machine — and optionally exposes them publicly via a Cloudflare tunnel. No API keys, no usage fees, just your browser session tokens.
+Spike converts ChatGPT and Google Gemini into OpenAI-compatible APIs that run locally on your machine — and optionally exposes them publicly via an ngrok tunnel. No API keys, no usage fees, just your browser session tokens.
 
 ```python
 import requests
@@ -95,24 +96,25 @@ curl http://localhost:8000/v1/chat/completions \
 
 ---
 
-## Cloudflare Tunnel
+## Public Tunnel (ngrok)
 
-Spike can expose your local API at a public `trycloudflare.com` URL — no Cloudflare account, no DNS config, no port forwarding required.
+Spike can expose your local API at a public `*.ngrok-free.app` URL using a free ngrok account. Same URL every session, works from anywhere, no port forwarding.
 
 ### How It Works
 
-The tunnel forwards requests from a public HTTPS URL to your local Unified Proxy (`localhost:8000`). Anyone with the URL can call your API as if it were a hosted service.
+The tunnel forwards requests from a public HTTPS URL to your local Unified Proxy (`localhost:8000`). Anyone with the URL and your auth header can call your API as if it were a hosted service.
 
 ### Setup
 
-1. Open Spike → **Dashboard**
-2. In the **Public API Endpoint** card, click **Install Cloudflare Tunnel**
-3. Spike downloads the connector (~22 MB) in the background — no admin rights needed
-4. Once installed, toggle the switch to **On**
-5. Your public URL appears immediately — copy and share it
+1. Create a free ngrok account at [ngrok.com/signup](https://dashboard.ngrok.com/signup)
+2. Copy your authtoken from [Your Authtoken](https://dashboard.ngrok.com/get-started/your-authtoken) in the dashboard
+3. Open Spike → **Dashboard**
+4. In the **Public API Endpoint** card, paste your authtoken and click **Connect**
+5. Spike downloads the ngrok agent (~10 MB) automatically — no admin rights needed
+6. Click **Start tunnel** — your public URL appears immediately
 
 ```
-https://your-name-here.trycloudflare.com/v1
+https://your-name.ngrok-free.app/v1
 ```
 
 Use it exactly like the local endpoint:
@@ -120,20 +122,71 @@ Use it exactly like the local endpoint:
 ```python
 import requests
 
-response = requests.post('https://your-name-here.trycloudflare.com/v1/chat/completions', json={
-    "model": "gemini-2.0-flash",
-    "messages": [{"role": "user", "content": "Hello from the internet"}]
-})
+response = requests.post(
+    'https://your-name.ngrok-free.app/v1/chat/completions',
+    headers={'ngrok-skip-browser-warning': 'true'},
+    json={
+        "model": "gemini-2.0-flash",
+        "messages": [{"role": "user", "content": "Hello from the internet"}]
+    }
+)
 
 print(response.json()['choices'][0]['message']['content'])
 ```
 
 ### Things to Know
 
-- **Ephemeral URL** — the URL changes each time you start the tunnel. For a stable URL, use the Local Project Setup to deploy your own server.
-- **Toggle anytime** — turn the tunnel on or off from the Dashboard or Services tab. Your preference is saved across sessions.
+- **Stable URL** — your account always gets the same `*.ngrok-free.app` URL. Safe to hardcode.
+- **Toggle anytime** — turn the tunnel on or off from the Dashboard. Your authtoken is saved across sessions.
 - **Local still works** — the local endpoint (`localhost:8000`) is always available alongside the public one.
 - **Tunnel only wraps the Unified Proxy** — the individual bridges (Gemini, ChatGPT) are not exposed directly.
+- **Add the skip-warning header** — pass `ngrok-skip-browser-warning: true` on every request so ngrok doesn't show its free-tier interstitial.
+
+---
+
+## Handling Transient Tunnel Errors
+
+ngrok agent occasionally returns HTTP 502 with the message *"failed to open private leg"*. This happens when the ngrok agent's internal connection pool to the upstream proxy briefly blips, and it usually recovers on the very next request (within a few hundred milliseconds).
+
+The Spike app handles this automatically for the built-in chat UI. If you're calling the public URL from your own code, drop in the helper module and you'll get the same behavior:
+
+| File | Language | Path |
+|------|----------|------|
+| `chat_with_retry.py` | Python | [`nexusai-electron/examples/chat_with_retry.py`](nexusai-electron/examples/chat_with_retry.py) |
+| `chatWithRetry.js` | Node 18+ / browser | [`nexusai-electron/examples/chatWithRetry.js`](nexusai-electron/examples/chatWithRetry.js) |
+
+### What It Does
+
+1. Sends your `POST /v1/chat/completions` normally
+2. If the response is HTTP 502 with an ngrok HTML error page, retries up to 3 times with 250ms gaps
+3. Any other failure (auth, model error, network) is raised immediately — no silent retries on real errors
+
+### Python Usage
+
+```python
+from chat_with_retry import chat
+
+answer = chat(
+    "Explain quantum computing",
+    base_url="https://your-name.ngrok-free.app",
+    model="gemini-2.0-flash",
+)
+print(answer)
+```
+
+### JavaScript Usage
+
+```javascript
+const { chat } = require('./chatWithRetry');
+
+const answer = await chat('Explain quantum computing', {
+  baseUrl: 'https://your-name.ngrok-free.app',
+  model: 'gemini-2.0-flash',
+});
+console.log(answer);
+```
+
+Both helpers expose a lower-level `postChatCompletion` / `post_chat_completion` function if you need to send arbitrary payloads.
 
 ---
 
@@ -268,7 +321,7 @@ def chat(message, model="gpt-4o", base_url="http://localhost:8000"):
 answer = chat("What is Python?")
 
 # Public tunnel
-answer = chat("What is Python?", base_url="https://your-name.trycloudflare.com")
+answer = chat("What is Python?", base_url="https://your-name.ngrok-free.app")
 ```
 
 ### OpenAI Python Library
@@ -280,7 +333,7 @@ from openai import OpenAI
 client = OpenAI(base_url="http://localhost:8000/v1", api_key="not-needed")
 
 # Public tunnel
-client = OpenAI(base_url="https://your-name.trycloudflare.com/v1", api_key="not-needed")
+client = OpenAI(base_url="https://your-name.ngrok-free.app/v1", api_key="not-needed")
 
 response = client.chat.completions.create(
     model="gpt-4o",
@@ -319,7 +372,7 @@ Spike runs three local services:
 | Gemini | 6969 | Connects to Google Gemini via browser session tokens. |
 | ChatGPT | 5005 | Bridges the ChatGPT web interface to API format. |
 
-The optional **Cloudflare Tunnel** wraps the Unified Proxy and exposes it at a public HTTPS URL. The bridges themselves remain local.
+The optional **ngrok tunnel** wraps the Unified Proxy and exposes it at a public HTTPS URL. The bridges themselves remain local.
 
 ---
 
@@ -333,6 +386,9 @@ Update your tokens in the Services tab. Tokens expire periodically. After updati
 
 **Tunnel URL not appearing**  
 Make sure the Unified Proxy is running before starting the tunnel. The tunnel needs a live local service to connect to.
+
+**Tunnel returns HTTP 502 "failed to open private leg"**  
+This is a transient ngrok agent error that recovers within milliseconds. The Spike app's built-in chat retries it automatically. For your own integrations, use [`chat_with_retry.py`](nexusai-electron/examples/chat_with_retry.py) or [`chatWithRetry.js`](nexusai-electron/examples/chatWithRetry.js) — see [Handling Transient Tunnel Errors](#handling-transient-tunnel-errors).
 
 **Slow responses**  
 Try a faster model (`gemini-3-flash` or `gpt-4o-mini`). Check your internet connection.

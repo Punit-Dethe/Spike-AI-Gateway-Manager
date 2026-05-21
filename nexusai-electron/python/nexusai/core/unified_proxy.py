@@ -10,9 +10,10 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 app = FastAPI(title="NexusAI Unified Proxy")
 
-# Backend service URLs
-GEMINI_URL = "http://localhost:6969"
-CHAT2API_URL = "http://localhost:5005"
+# Backend service URLs — use 127.0.0.1 explicitly to avoid Windows IPv6 resolution
+# (Windows resolves 'localhost' to [::1] first; our services only bind to 127.0.0.1)
+GEMINI_URL = "http://127.0.0.1:6969"
+CHAT2API_URL = "http://127.0.0.1:5005"
 
 
 def route_to_backend(model: str) -> str:
@@ -58,12 +59,17 @@ async def chat_completions(request: Request):
                     async with client.stream("POST", target_url, content=body, headers=headers) as response:
                         async for chunk in response.aiter_bytes():
                             yield chunk
-            
+
             return StreamingResponse(generate(), media_type="text/event-stream")
         else:
-            async with httpx.AsyncClient(timeout=120.0) as client:
+            # Fresh client per request — avoids stale idle connection pool errors (502 on first
+            # message after a long idle period). The overhead is negligible for a local proxy.
+            async with httpx.AsyncClient(
+                timeout=120.0,
+                limits=httpx.Limits(max_keepalive_connections=0),  # disable connection reuse
+            ) as client:
                 response = await client.post(target_url, content=body, headers=headers)
-                
+
                 return JSONResponse(
                     status_code=response.status_code,
                     content=response.json() if response.headers.get("content-type", "").startswith("application/json") else {"error": response.text}
@@ -122,6 +128,22 @@ async def health():
     return {"status": "healthy", "service": "unified-proxy"}
 
 
+# Suppress /health access-log lines so the 20s keep-alive ping doesn't drown
+# out useful request logs. Real requests (/v1/*) are still logged.
+import logging as _logging
+
+class _HealthAccessFilter(_logging.Filter):
+    def filter(self, record: _logging.LogRecord) -> bool:
+        try:
+            # uvicorn.access record args: (client, method, path, http_version, status)
+            msg = record.getMessage()
+            return ' /health ' not in msg
+        except Exception:
+            return True
+
+_logging.getLogger("uvicorn.access").addFilter(_HealthAccessFilter())
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("NexusAI Unified Proxy")
@@ -130,5 +152,5 @@ if __name__ == "__main__":
     print(f"Chat2API:       {CHAT2API_URL}")
     print(f"Proxy:          http://0.0.0.0:8000")
     print("=" * 60)
-    
+
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info", access_log=False)

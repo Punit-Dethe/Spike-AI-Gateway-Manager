@@ -34,8 +34,8 @@ contextBridge.exposeInMainWorld('electron', {
   openFolder: (folderPath) => ipcRenderer.invoke('open-folder', folderPath),
   openTerminal: (folderPath) => ipcRenderer.invoke('open-terminal', folderPath),
 
-  // Cloudflare tunnel
-  tunnelInstall: () => ipcRenderer.invoke('tunnel-install'),
+  // Public tunnel (ngrok)
+  tunnelInstall: (payload) => ipcRenderer.invoke('tunnel-install', payload),
   tunnelUninstall: () => ipcRenderer.invoke('tunnel-uninstall'),
   tunnelStart: (port) => ipcRenderer.invoke('tunnel-start', port),
   tunnelStop: () => ipcRenderer.invoke('tunnel-stop'),
@@ -48,13 +48,16 @@ contextBridge.exposeInMainWorld('electron', {
   removeTunnelStatusListener: () => {
     ipcRenderer.removeAllListeners('tunnel-status');
   },
-  onCloudflaredInstallProgress: (callback) => {
-    ipcRenderer.on('cloudflared-install-progress', (event, data) => callback(data));
+  onTunnelInstallProgress: (callback) => {
+    ipcRenderer.on('tunnel-install-progress', (event, data) => callback(data));
   },
-  removeCloudflaredInstallProgressListener: () => {
-    ipcRenderer.removeAllListeners('cloudflared-install-progress');
+  removeTunnelInstallProgressListener: () => {
+    ipcRenderer.removeAllListeners('tunnel-install-progress');
   },
   
+  // Open a URL in the system's default browser (not inside Electron)
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
+
   // Event listeners
   onServiceStatus: (callback) => {
     ipcRenderer.on('service-status', (event, data) => callback(data));

@@ -347,34 +347,14 @@ async function startService(serviceName) {
     return { success: false, message: 'Service not found' };
   }
 
-  // Check if port is already in use
-  const portInUse = await isPortInUse(service.port);
-  if (portInUse) {
-    logWarning(`Port ${service.port} is already in use. Attempting to kill existing process...`, serviceName);
-    const killed = await killProcessOnPort(service.port);
-    
-    if (!killed) {
-      service.status = 'error';
-      sendStatusUpdate(serviceName, 'error', `Port ${service.port} is already in use`);
-      return { 
-        success: false, 
-        message: `Port ${service.port} is already in use. Please stop the existing process manually.` 
-      };
-    }
-    
-    // Wait a bit for port to be released
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }
+  // Always stop cleanly before starting — ensures no stale process or port conflict
+  // Use 'analyzing' status so the UI shows "Analyzing" rather than "Stopping"
+  log(`Ensuring ${service.name} is stopped before starting`, 'INFO', serviceName);
+  sendStatusUpdate(serviceName, 'analyzing');
+  await stopService(serviceName, /* silent */ true);
 
-  // If we have a process reference but it's not actually running, clean it up
-  if (service.process) {
-    try {
-      service.process.kill();
-    } catch (e) {
-      // Process already dead
-    }
-    service.process = null;
-  }
+  // Brief pause to let the OS fully release the port after stop
+  await new Promise(resolve => setTimeout(resolve, 500));
 
   try {
     service.status = 'starting';
@@ -608,10 +588,14 @@ async function startService(serviceName) {
     });
 
     service.process.on('close', (code) => {
-      log(`Process exited with code ${code}`, code === 0 ? 'INFO' : 'ERROR', serviceName);
+      // A non-zero exit is only a crash if we didn't intentionally stop the process.
+      // taskkill /F always produces exit code 1 — that's expected, not an error.
+      const intentionallyStopped = service.status === 'stopping' || service.status === 'analyzing';
+      const isCrash = code !== 0 && code !== null && !intentionallyStopped;
+
+      log(`Process exited with code ${code}`, isCrash ? 'ERROR' : 'INFO', serviceName);
       
-      // Log more details about why it closed
-      if (code !== 0 && code !== null) {
+      if (isCrash) {
         logError(`Process crashed unexpectedly`, serviceName);
         logDetail('Exit Code', code);
         logDetail('Solution', 'Check logs above for error details');
@@ -639,16 +623,20 @@ async function startService(serviceName) {
   }
 }
 
-async function stopService(serviceName) {
+async function stopService(serviceName, silent = false) {
   const service = serviceConfig[serviceName];
   if (!service) {
     return { success: false, message: 'Service not found' };
   }
 
   try {
-    service.status = 'stopping';
-    sendStatusUpdate(serviceName, 'stopping');
-    
+    // Only broadcast 'stopping' when the user explicitly pressed Stop.
+    // When called internally from startService, the caller already set 'analyzing'.
+    if (!silent) {
+      service.status = 'stopping';
+      sendStatusUpdate(serviceName, 'stopping');
+    }
+
     log(`Stopping ${service.name}`, 'HEADER', serviceName);
     logDetail('Port', service.port);
     
@@ -700,7 +688,9 @@ async function stopService(serviceName) {
     
     service.status = 'stopped';
     logSuccess('Service stopped successfully', serviceName);
-    sendStatusUpdate(serviceName, 'stopped');
+    if (!silent) {
+      sendStatusUpdate(serviceName, 'stopped');
+    }
     
     return { success: true, message: 'Service stopped successfully' };
   } catch (error) {
@@ -913,6 +903,20 @@ ipcMain.handle('select-folder', async () => {
   }
 });
 
+ipcMain.handle('open-external', async (_event, url) => {
+  try {
+    // Validate it's an http/https URL before opening
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      return { success: false, error: 'Only http/https URLs are allowed' };
+    }
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
 ipcMain.handle('open-folder', async (event, folderPath) => {
   try {
     shell.openPath(folderPath);
@@ -1052,21 +1056,61 @@ registerLocalSetupHandlers(logSuccess, logDetail, logError);
 // Chat-completion forwarder.
 // Called from the renderer to make a chat-completions request without hitting
 // browser CORS rules. The main process has no same-origin restriction, so this
-// works equally well against localhost, the Cloudflare tunnel, or a bridge
-// running on another port.
-ipcMain.handle('chat-complete', async (_event, { url, body, authHeader }) => {
+// works equally well against localhost, the public tunnel, or a bridge running
+// on another port.
+ipcMain.handle('chat-complete', async (_event, payload) => {
+  return doRequestWithRetry(payload);
+});
+
+// Retry parameters for transient ngrok "failed to open private leg" 502s.
+// This error returns near-instantly, so a few quick retries cost almost
+// nothing and turn the intermittent failure into a non-event for the user.
+const CHAT_MAX_RETRIES = 3;
+const CHAT_RETRY_DELAY_MS = 250;
+
+// Detect ngrok's transient "failed to open private leg" 502 page so we only
+// retry that specific error, not real backend failures (auth, model errors,
+// etc.). The page is HTML and includes "ngrok" plus an error reference.
+function isTransientNgrokError(status, body) {
+  if (status !== 502) return false;
+  if (typeof body !== 'string') return false;
+  const lower = body.toLowerCase();
+  return lower.includes('ngrok') && (
+    lower.includes('private leg') ||
+    lower.includes('err_ngrok') ||
+    lower.includes('<!doctype html')  // any ngrok HTML error page on 502
+  );
+}
+
+async function doRequestWithRetry(payload) {
+  let lastResult = null;
+  for (let attempt = 0; attempt <= CHAT_MAX_RETRIES; attempt++) {
+    const result = await doRequest(payload);
+    lastResult = result;
+    if (result.success) {
+      if (attempt > 0) {
+        logSuccess(`Chat request recovered after ${attempt} retr${attempt === 1 ? 'y' : 'ies'}`, 'GATEWAY');
+      }
+      return result;
+    }
+    if (!isTransientNgrokError(result.status, result.body)) {
+      // Real failure — don't retry.
+      return result;
+    }
+    if (attempt < CHAT_MAX_RETRIES) {
+      logWarning(`Chat request hit transient ngrok 502, retrying (${attempt + 1}/${CHAT_MAX_RETRIES})…`, 'GATEWAY');
+      await new Promise((r) => setTimeout(r, CHAT_RETRY_DELAY_MS));
+    }
+  }
+  return lastResult;
+}
+
+function doRequest({ url, body, authHeader }) {
   return new Promise((resolve) => {
     try {
-      const request = electronNet.request({
-        method: 'POST',
-        url,
-        redirect: 'follow',
-      });
-
+      const request = electronNet.request({ method: 'POST', url, redirect: 'follow' });
       request.setHeader('Content-Type', 'application/json');
-      if (authHeader) {
-        request.setHeader('Authorization', authHeader);
-      }
+      if (authHeader) request.setHeader('Authorization', authHeader);
 
       const chunks = [];
       let statusCode = 0;
@@ -1079,46 +1123,42 @@ ipcMain.handle('chat-complete', async (_event, { url, body, authHeader }) => {
           if (statusCode >= 200 && statusCode < 300) {
             resolve({ success: true, status: statusCode, body: text });
           } else {
-            resolve({
-              success: false,
-              status: statusCode,
-              body: text,
-              error: `HTTP ${statusCode}`,
-            });
+            resolve({ success: false, status: statusCode, body: text, error: `HTTP ${statusCode}` });
           }
         });
-        response.on('error', (err) => {
-          resolve({ success: false, error: err.message || 'Response error' });
-        });
+        response.on('error', (err) => resolve({ success: false, error: err.message || 'Response error' }));
       });
-
-      request.on('error', (err) => {
-        resolve({ success: false, error: err.message || 'Request error' });
-      });
-
+      request.on('error', (err) => resolve({ success: false, error: err.message || 'Request error' }));
       request.write(JSON.stringify(body));
       request.end();
     } catch (error) {
       resolve({ success: false, error: error.message || 'Unknown error' });
     }
   });
-});
+}
 
 // Register tunnel handlers from module
 tunnel.registerTunnelHandlers(
   { log, logDetail, logSuccess, logWarning, logError },
-  () => mainWindow
+  () => mainWindow,
+  // Callback the tunnel module calls to ensure the proxy is running before
+  // advertising the public URL. Returns true when the proxy is ready.
+  async () => {
+    const proxy = serviceConfig.proxy;
+    if (proxy && proxy.status === 'running') return true;
+    log('Tunnel start: proxy not running — starting it automatically', 'INFO', 'TUNNEL');
+    await startService('proxy');
+    // startService resolves once the process is spawned; the port probe in
+    // tunnel.js then waits for the port to actually accept connections.
+    return proxy && proxy.status === 'running';
+  }
 );
 
 // App lifecycle
 app.whenReady().then(() => {
   createWindow();
   createTray();
-
-  // Auto-start tunnel if user previously enabled it and binary is present
-  tunnel.maybeAutoStart(serviceConfig.proxy.port).catch((err) => {
-    logError('Tunnel auto-start failed', 'TUNNEL', err);
-  });
+  // Tunnel never auto-starts — user must toggle it manually each session
 });
 
 app.on('window-all-closed', () => {
@@ -1137,6 +1177,8 @@ app.on('activate', () => {
 
 app.on('before-quit', () => {
   app.isQuitting = true;
+  // Always reset tunnel enabled state so it never auto-starts next session
+  tunnel.resetEnabled();
   tunnel.stopTunnel().catch(() => {});
   stopAllServices();
 });

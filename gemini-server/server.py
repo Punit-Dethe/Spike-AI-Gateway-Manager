@@ -355,6 +355,21 @@ async def list_models():
         ]
     })
 
+@app.on_event("startup")
+async def startup():
+    """Eagerly initialize the Gemini client so the first request isn't cold."""
+    global client, client_initialized
+    if PSID and PSIDTS:
+        try:
+            client = GeminiClient(PSID, PSIDTS, proxy=None)
+            await client.init(timeout=30, auto_close=False, auto_refresh=True)
+            client_initialized = True
+            print(f"✓ Client pre-initialized at startup (warm and ready)")
+        except Exception as e:
+            print(f"⚠ Startup pre-init failed (will retry on first request): {e}")
+    else:
+        print("⚠ No tokens configured — client will initialize on first request")
+
 @app.on_event("shutdown")
 async def shutdown():
     """Cleanup on shutdown"""

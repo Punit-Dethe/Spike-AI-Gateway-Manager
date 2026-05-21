@@ -344,16 +344,40 @@ testRequestBtn.addEventListener('click', async () => {
         testRequestBtn.textContent = 'Sending...';
         testResponse.textContent = 'Waiting for response...';
         responseCard.style.display = 'block';
-        
-        const response = await fetch(`${API_BASE}/v1/chat/completions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: model,
-                messages: [{ role: 'user', content: prompt }]
-            })
+
+        const body = JSON.stringify({
+            model: model,
+            messages: [{ role: 'user', content: prompt }]
         });
-        
+
+        // Retry the specific transient ngrok "failed to open private leg" 502.
+        // It returns near-instantly, so a few quick retries cost almost nothing
+        // and turn the intermittent failure into a non-event.
+        const MAX_RETRIES = 3;
+        const RETRY_DELAY_MS = 200;
+        let response = null;
+        let attempt = 0;
+
+        while (true) {
+            response = await fetch(`${API_BASE}/v1/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true',
+                },
+                body,
+            });
+
+            // Detect ngrok's "failed to open private leg" page so we only
+            // retry that specific transient error, not real backend failures.
+            const isTransient502 = response.status === 502;
+            if (response.ok || !isTransient502 || attempt >= MAX_RETRIES) break;
+
+            attempt += 1;
+            testResponse.textContent = `Tunnel hiccup, retrying (${attempt}/${MAX_RETRIES})…`;
+            await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        }
+
         if (response.ok) {
             const data = await response.json();
             const content = data.choices[0].message.content;
@@ -363,8 +387,15 @@ testRequestBtn.addEventListener('click', async () => {
                 : '\n\n📝 This chat was saved to your Gemini history (server-wide history mode)';
             testResponse.textContent = `${content}\n\n---\nModel: ${data.model}\nTokens: ${data.usage.total_tokens}${historyNote}`;
         } else {
-            const error = await response.json();
-            testResponse.textContent = `Error: ${error.detail}`;
+            // Try to parse error JSON; fall back to text for ngrok HTML pages.
+            let detail;
+            try {
+                const error = await response.json();
+                detail = error.detail || JSON.stringify(error);
+            } catch {
+                detail = `HTTP ${response.status}`;
+            }
+            testResponse.textContent = `Error: ${detail}`;
         }
     } catch (error) {
         testResponse.textContent = `Error: ${error.message}`;

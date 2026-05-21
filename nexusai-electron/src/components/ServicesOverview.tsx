@@ -1,6 +1,6 @@
 import type { TunnelStatus } from '../electron';
 
-type ServiceRunStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'error';
+type ServiceRunStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'analyzing' | 'error';
 
 interface ServiceStatusMap {
   [key: string]: ServiceRunStatus;
@@ -11,24 +11,25 @@ interface ServicesOverviewProps {
   tunnelStatus: TunnelStatus;
   onStartService: (serviceName: string) => void;
   onStopService: (serviceName: string) => void;
-  onTunnelInstall: () => void | Promise<void>;
   onTunnelStart: () => void | Promise<void>;
   onTunnelStop: () => void | Promise<void>;
 }
 
 // Color tokens kept inline so SVG fill values stay literal (avoids CSS-var/Tailwind quirks inside SVG).
 const STATUS_FILL: Record<ServiceRunStatus, string> = {
-  running: '#10b981',  // emerald-500
-  starting: '#f59e0b', // amber-500
-  stopping: '#f59e0b', // amber-500
-  error: '#f43f5e',    // rose-500
-  stopped: '#9ca3af',  // gray-400
+  running: '#10b981',
+  starting: '#f59e0b',
+  stopping: '#f59e0b',
+  analyzing: '#f59e0b',
+  error: '#f43f5e',
+  stopped: '#9ca3af',
 };
 
 const STATUS_LABEL: Record<ServiceRunStatus, string> = {
   running: 'on',
   starting: 'starting',
   stopping: 'stopping',
+  analyzing: 'analyzing',
   error: 'error',
   stopped: 'off',
 };
@@ -143,7 +144,6 @@ const ServicesOverview = ({
   tunnelStatus,
   onStartService,
   onStopService,
-  onTunnelInstall,
   onTunnelStart,
   onTunnelStop,
 }: ServicesOverviewProps) => {
@@ -169,7 +169,7 @@ const ServicesOverview = ({
 
   const toggleTunnel = () => {
     if (tunnelTransitioning) return;
-    if (!tunnelInstalled) return void onTunnelInstall();
+    if (!tunnelInstalled) return; // setup happens in the TunnelCard below
     if (tunnelStatus.status === 'running') return void onTunnelStop();
     return void onTunnelStart();
   };
@@ -181,7 +181,7 @@ const ServicesOverview = ({
 
   // Tunnel meta line under the node
   let tunnelMeta = 'public';
-  if (!tunnelInstalled) tunnelMeta = 'tap to install';
+  if (!tunnelInstalled) tunnelMeta = tunnelStatus.authConfigured ? 'finish setup ↓' : 'set up below ↓';
   else if (tunnelStatus.installing) tunnelMeta = 'installing…';
   else if (tunnelStatus.status === 'starting') tunnelMeta = 'starting…';
   else if (tunnelStatus.status === 'error') tunnelMeta = 'error';

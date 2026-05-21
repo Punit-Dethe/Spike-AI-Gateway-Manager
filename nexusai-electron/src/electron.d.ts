@@ -34,19 +34,20 @@ export interface ElectronAPI {
   createLocalGeminiSetup: (config: { projectPath: string; psid: string; psidts: string }) => Promise<{ success: boolean; setupPath?: string; error?: string }>;
   openFolder?: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
   openTerminal?: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
+  openExternal: (url: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Cloudflare tunnel
-  tunnelInstall: () => Promise<{ success: boolean; alreadyInstalled?: boolean; message?: string }>;
+  // Public tunnel (ngrok)
+  tunnelInstall: (payload?: { authtoken?: string }) => Promise<{ success: boolean; alreadyInstalled?: boolean; message?: string }>;
   tunnelUninstall: () => Promise<{ success: boolean; message?: string }>;
   tunnelStart: (port?: number) => Promise<{ success: boolean; message?: string; url?: string | null }>;
   tunnelStop: () => Promise<{ success: boolean; message?: string }>;
   tunnelGetStatus: () => Promise<TunnelStatus>;
-  tunnelSaveConfig: (cfg: { enabled: boolean }) => Promise<{ success: boolean }>;
-  tunnelGetConfig: () => Promise<{ enabled: boolean }>;
+  tunnelSaveConfig: (cfg: { enabled?: boolean }) => Promise<{ success: boolean }>;
+  tunnelGetConfig: () => Promise<{ enabled: boolean; authConfigured: boolean }>;
   onTunnelStatus: (callback: (data: TunnelStatus) => void) => void;
   removeTunnelStatusListener: () => void;
-  onCloudflaredInstallProgress: (callback: (data: CloudflaredInstallProgress) => void) => void;
-  removeCloudflaredInstallProgressListener: () => void;
+  onTunnelInstallProgress: (callback: (data: TunnelInstallProgress) => void) => void;
+  removeTunnelInstallProgressListener: () => void;
 }
 
 export type TunnelRunStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'error';
@@ -55,12 +56,17 @@ export interface TunnelStatus {
   status: TunnelRunStatus;
   url: string | null;
   error: string | null;
+  /** Convenience: binary present AND authtoken configured. */
   installed: boolean;
+  /** ngrok.exe is on disk. */
+  binaryPresent: boolean;
+  /** Authtoken has been saved. */
+  authConfigured: boolean;
   installing: boolean;
   port: number;
 }
 
-export interface CloudflaredInstallProgress {
+export interface TunnelInstallProgress {
   phase: 'starting' | 'downloading' | 'complete' | 'error';
   percent?: number;
   downloaded?: number;

@@ -13,10 +13,10 @@ import LocalSetupWizard from './components/LocalSetupWizard';
 import TunnelCard from './components/TunnelCard';
 import StandaloneSetupCard from './components/StandaloneSetupCard';
 import GatewayPanel from './components/GatewayPanel';
-import type { TunnelStatus, CloudflaredInstallProgress } from './electron';
+import type { TunnelStatus, TunnelInstallProgress } from './electron';
 
 interface ServiceStatus {
-  [key: string]: 'stopped' | 'starting' | 'running' | 'stopping' | 'error';
+  [key: string]: 'stopped' | 'starting' | 'running' | 'stopping' | 'analyzing' | 'error';
 }
 
 type Tab = 'chat' | 'dashboard' | 'services' | 'logs';
@@ -26,6 +26,8 @@ const INITIAL_TUNNEL_STATUS: TunnelStatus = {
   url: null,
   error: null,
   installed: false,
+  binaryPresent: false,
+  authConfigured: false,
   installing: false,
   port: 8000,
 };
@@ -49,7 +51,7 @@ function App() {
   // Tunnel state, lifted so both the overview and the tunnel card stay in sync.
   const [tunnelStatus, setTunnelStatus] = useState<TunnelStatus>(INITIAL_TUNNEL_STATUS);
   const [installProgress, setInstallProgress] =
-    useState<CloudflaredInstallProgress | null>(null);
+    useState<TunnelInstallProgress | null>(null);
 
   const handleNewChat = () => {
     setChatMessages([]);
@@ -65,15 +67,18 @@ function App() {
   };
 
   // --- Tunnel control helpers ---
-  const handleTunnelInstall = async () => {
+  const handleTunnelInstall = async (authtoken?: string) => {
     setInstallProgress({ phase: 'starting', percent: 0 });
-    const result = await window.electron.tunnelInstall();
+    const result = await window.electron.tunnelInstall(
+      authtoken ? { authtoken } : undefined,
+    );
     if (!result.success) {
       setInstallProgress({
         phase: 'error',
-        error: result.message || 'Install failed',
+        error: result.message || 'Setup failed',
       });
     }
+    return result;
   };
   const handleTunnelStart = async () => {
     await window.electron.tunnelSaveConfig({ enabled: true });
@@ -111,7 +116,7 @@ function App() {
     });
 
     // Tunnel install progress
-    window.electron.onCloudflaredInstallProgress((data) => {
+    window.electron.onTunnelInstallProgress((data) => {
       setInstallProgress(data);
       if (data.phase === 'complete') {
         setTimeout(() => setInstallProgress(null), 600);
@@ -121,7 +126,7 @@ function App() {
     return () => {
       window.electron.removeServiceStatusListener();
       window.electron.removeTunnelStatusListener();
-      window.electron.removeCloudflaredInstallProgressListener();
+      window.electron.removeTunnelInstallProgressListener();
     };
   }, []);
 
@@ -166,6 +171,9 @@ function App() {
                   selectedEndpoint={selectedEndpoint}
                   setSelectedEndpoint={setSelectedEndpoint}
                   tunnelUrl={tunnelStatus.status === 'running' ? tunnelStatus.url : null}
+                  geminiRunning={serviceStatus.gemini === 'running'}
+                  chatgptRunning={serviceStatus.chat2api === 'running'}
+                  proxyRunning={serviceStatus.proxy === 'running'}
                 />
               </motion.div>
             )}
@@ -182,7 +190,6 @@ function App() {
                   tunnelStatus={tunnelStatus}
                   onStartService={handleStartService}
                   onStopService={handleStopService}
-                  onTunnelInstall={handleTunnelInstall}
                   onTunnelStart={handleTunnelStart}
                   onTunnelStop={handleTunnelStop}
                 />
@@ -194,6 +201,7 @@ function App() {
                 <TunnelCard
                   tunnelStatus={tunnelStatus}
                   installProgress={installProgress}
+                  proxyRunning={serviceStatus.proxy === 'running'}
                   onInstall={handleTunnelInstall}
                   onStart={handleTunnelStart}
                   onStop={handleTunnelStop}
@@ -224,9 +232,9 @@ function App() {
                   onStartProxy={() => handleStartService('proxy')}
                   onStopProxy={() => handleStopService('proxy')}
                   onKillProxy={() => window.electron.killService('proxy')}
-                  onTunnelInstall={handleTunnelInstall}
                   onTunnelStart={handleTunnelStart}
                   onTunnelStop={handleTunnelStop}
+                  onOpenTunnelSetup={() => setActiveTab('dashboard')}
                 />
 
                 {/* Divider */}
